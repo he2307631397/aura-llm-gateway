@@ -24,10 +24,12 @@ Thumbs.db
 
 # IDE and editor files
 .idea/
-.vscode/
 *.swp
 *.swo
 *~
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # Logs
 *.log
@@ -40,9 +42,47 @@ logs/
 # Coverage
 coverage/
 *.lcov
+cobertura.xml
+tarpaulin-report.html
 
 # Documentation build
 docs/book/
+target/doc/
 
 # Research notes (not part of codebase)
 aura-research/
+
+# Claude
+.claude/
+
+# Cargo audit cache
+~/.cargo/advisory-db
+
+# Benchmarking
+criterion/
+benches/target/
+
+# Profiling
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Docker volumes
+.docker/
+
+# SQLx offline mode
+.sqlx/
+
+# Testing artifacts
+*.profraw
+*.profdata
+
+# Node modules (for dashboard when added)
+node_modules/
+dist/
+.turbo/
+
+# Lock files for tools
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

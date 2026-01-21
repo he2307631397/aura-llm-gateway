@@ -65,6 +65,7 @@ dependencies = [
  "async-trait",
  "aura-db",
  "aura-types",
+ "dotenvy",
  "reqwest",
  "serde",
  "serde_json",

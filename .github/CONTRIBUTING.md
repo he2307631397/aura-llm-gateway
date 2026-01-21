@@ -20,10 +20,28 @@ Thank you for your interest in contributing to Aura LLM Gateway! This document p
    make install
    ```
 
-4. **Verify setup**:
+4. **Build the project** (this automatically installs git hooks):
+   ```bash
+   cargo build
+   ```
+
+5. **Verify setup**:
    ```bash
    make ci
    ```
+
+### Git Hooks
+
+The project uses `cargo-husky` for automatic git hooks. On your first `cargo build`, hooks are installed automatically:
+
+- **Pre-commit hook**: Runs `cargo fmt --check` and `cargo clippy`
+- **Pre-push hook**: Runs `cargo test --workspace`
+
+To bypass hooks temporarily (not recommended):
+```bash
+git commit --no-verify
+git push --no-verify
+```
 
 ## Development Workflow
 

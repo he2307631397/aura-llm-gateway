@@ -53,7 +53,7 @@ aura-llm-gateway/
 git clone https://github.com/umaitech/aura-llm-gateway.git
 cd aura-llm-gateway
 
-# Build the project
+# Build the project (this also installs git hooks automatically)
 cargo build --release
 
 # Run tests
@@ -62,6 +62,12 @@ cargo test --workspace
 # Run the server
 ./target/release/aura-proxy
 ```
+
+**Note:** The first `cargo build` automatically installs git hooks (via cargo-husky) that run:
+- **Pre-commit**: Formatting and linting checks
+- **Pre-push**: All tests
+
+To skip hooks temporarily: `git commit --no-verify`
 
 ### Configuration
 

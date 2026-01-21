@@ -64,10 +64,22 @@ cargo test --workspace
 ```
 
 **Note:** The first `cargo build` automatically installs git hooks (via cargo-husky) that run:
-- **Pre-commit**: Formatting and linting checks
+- **Pre-commit**: Formatting and linting checks (lightweight - libs only)
 - **Pre-push**: All tests
 
 To skip hooks temporarily: `git commit --no-verify`
+
+### Troubleshooting
+
+**Pre-commit hook failing with build errors?**
+```bash
+# Clean and retry
+cargo clean
+git commit -m "your message"
+
+# Or skip the hook temporarily
+git commit --no-verify -m "your message"
+```
 
 ### Configuration
 

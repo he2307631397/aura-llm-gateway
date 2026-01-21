@@ -2,7 +2,6 @@
 # https://embarkstudios.github.io/cargo-deny/
 
 [advisories]
-version = 2
 # The path where the advisory database is cloned/fetched into
 db-path = "~/.cargo/advisory-db"
 # The url(s) of the advisory databases to use

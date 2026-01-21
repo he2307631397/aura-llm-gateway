@@ -23,7 +23,50 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Check for duplicate releases
+        id: check_duplicate
+        run: |
+          VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::notice::Tag $TAG already exists, skipping release"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run release-plz
+        if: steps.check_duplicate.outputs.skip != 'true'
+        id: release_plz
         uses: MarcoIeni/release-plz-action@v0.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for release PR
+        if: steps.check_duplicate.outputs.skip != 'true'
+        run: |
+          # Wait a moment for PR to be created
+          sleep 5
+
+          # Find the most recent release PR
+          PR_NUMBER=$(gh pr list --label release --state open --limit 1 --json number --jq '.[0].number')
+
+          if [ -n "$PR_NUMBER" ]; then
+            echo "Enabling auto-merge for PR #$PR_NUMBER"
+            gh pr merge "$PR_NUMBER" --auto --squash
+            echo "✅ Auto-merge enabled. PR will merge after CI passes."
+          else
+            echo "::warning::No release PR found to auto-merge"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup old release branches
+        if: always()
+        run: |
+          # Delete merged/closed release-plz branches older than 7 days
+          gh pr list --label release --state closed --json headRefName,closedAt \
+            | jq -r '.[] | select(.closedAt < (now - 604800)) | .headRefName' \
+            | xargs -I {} git push origin --delete {} 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -146,13 +146,15 @@ pub struct AppState {
 
 Define the core Open Responses API types in `aura-types`.
 
+**Status:** ✅ **COMPLETED**
+
 **Tasks:**
-- [ ] Define `Item` enum (message, function_call, function_call_output, reasoning)
-- [ ] Define `ItemStatus` enum (in_progress, completed, failed, incomplete)
-- [ ] Define `Response` struct with status lifecycle
-- [ ] Define `StreamEvent` enum for SSE events
-- [ ] Add serde serialization with `#[serde(rename_all = "snake_case")]`
-- [ ] Write unit tests for JSON serialization
+- [x] Define `Item` enum (message, function_call, function_call_output, reasoning)
+- [x] Define `ItemStatus` enum (in_progress, completed, failed, incomplete)
+- [x] Define `Response` struct with status lifecycle
+- [x] Define `StreamEvent` enum for SSE events
+- [x] Add serde serialization with `#[serde(rename_all = "snake_case")]`
+- [x] Write unit tests for JSON serialization
 
 **Files:**
 - `crates/aura-types/src/item.rs`
@@ -161,8 +163,19 @@ Define the core Open Responses API types in `aura-types`.
 - `crates/aura-types/src/lib.rs` (re-exports)
 
 **Acceptance Criteria:**
-- Types serialize to match Open Responses API spec
-- All enums handle unknown variants gracefully
+- ✅ Types serialize to match Open Responses API spec
+- ✅ All enums handle unknown variants gracefully
+
+**Implementation Notes:**
+- Created comprehensive type system with 59 unit tests + 1 doc test
+- `Item` enum supports Message, FunctionCall, FunctionCallOutput, and Reasoning variants
+- `Response` struct includes builder pattern for easy construction
+- `StreamEvent` enum covers full SSE lifecycle (created, in_progress, deltas, completed, failed)
+- Added `InputItem` for request construction with simple helper methods
+- Added `CreateResponseRequest` with builder methods for common options
+- Added `Tool` and `FunctionDefinition` types for function calling
+- Added `SseMessage` for parsing/formatting Server-Sent Events
+- Created `docs/PROVIDER_MAPPING.md` documenting type mappings for each provider
 
 ---
 
@@ -212,11 +225,13 @@ Define the core Open Responses API types in `aura-types`.
 ### PR #6: OpenAI Adapter (First Working Proxy!)
 **Rust Concepts:** Traits, async traits, JSON transformation
 
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed type mappings between Open Responses API and OpenAI.
+
 **Tasks:**
 - [ ] Define `Provider` trait in `aura-core`
 - [ ] Implement `OpenAIProvider` struct
-- [ ] Transform Open Responses request → OpenAI format
-- [ ] Transform OpenAI response → Open Responses format
+- [ ] Transform Open Responses request → OpenAI format (see mapping guide)
+- [ ] Transform OpenAI response → Open Responses format (see mapping guide)
 - [ ] Add `/v1/responses` endpoint
 - [ ] Write integration tests with recorded responses
 
@@ -301,11 +316,14 @@ pub trait Provider: Send + Sync {
 ### PR #9: Claude Adapter
 **Rust Concepts:** Applying trait patterns, different API shapes
 
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Anthropic/Claude type mappings.
+
 **Tasks:**
 - [ ] Implement `ClaudeProvider` struct
-- [ ] Handle Claude's message format differences
-- [ ] Support system prompts as first message
-- [ ] Transform streaming format
+- [ ] Handle Claude's message format differences (system at top level)
+- [ ] Support system prompts as separate field (not in messages)
+- [ ] Transform streaming format (message_start, content_block_delta, etc.)
+- [ ] Handle `thinking` blocks as Item::Reasoning
 - [ ] Add provider-specific configuration
 
 **Files:**
@@ -314,18 +332,22 @@ pub trait Provider: Send + Sync {
 **Acceptance Criteria:**
 - Can proxy requests to Claude API
 - Streaming works correctly
+- Extended thinking exposed as reasoning items
 
 ---
 
 ### PR #10: Gemini Adapter
 **Rust Concepts:** Reinforcing patterns, handling edge cases
 
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Google/Gemini type mappings.
+
 **Tasks:**
 - [ ] Implement `GeminiProvider` struct
 - [ ] Handle Gemini's `contents` array format
-- [ ] Map roles correctly (user/model)
+- [ ] Map roles correctly (user/model instead of user/assistant)
+- [ ] Handle system_instruction as separate field
 - [ ] Support Gemini-specific parameters
-- [ ] Handle safety settings
+- [ ] Handle safety settings and content filtering
 
 **Files:**
 - `crates/aura-core/src/provider/gemini.rs`
@@ -333,6 +355,7 @@ pub trait Provider: Send + Sync {
 **Acceptance Criteria:**
 - Can proxy requests to Gemini API
 - Safety filter responses handled gracefully
+- Role mapping works correctly
 
 ---
 

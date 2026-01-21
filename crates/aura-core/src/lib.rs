@@ -3,6 +3,15 @@
 //! This crate contains the core logic for the gateway,
 //! including provider implementations, routing, caching, and load balancing.
 
+pub mod config;
+pub mod state;
+
+pub use config::{
+    AdminConfig, Config, ConfigBuilder, ConfigError, DatabaseConfig, LoggingConfig, ProviderConfig,
+    RedisConfig, ServerConfig,
+};
+pub use state::{AppState, AppStateBuilder};
+
 /// Returns the crate version
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

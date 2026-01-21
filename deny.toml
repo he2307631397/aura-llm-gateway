@@ -16,8 +16,8 @@ ignore = [
 ]
 
 [licenses]
-# The lint level for crates which do not have a detectable license
-unlicensed = "deny"
+# The confidence threshold for detecting a license from license text
+confidence-threshold = 0.8
 
 # List of allowed licenses
 allow = [
@@ -32,23 +32,20 @@ allow = [
 ]
 
 # List of explicitly disallowed licenses
-deny = [
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-3.0",
+[[licenses.clarify]]
+name = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [
+    { path = "LICENSE", hash = 0xbd0eed23 }
 ]
 
-# Lint level for licenses considered copyleft
-copyleft = "deny"
-
-# Blanket approval or denial for OSI-approved or FSF Free/Libre licenses
-allow-osi-fsf-free = "neither"
-
-# Lint level used when no other predicates are matched
-default = "deny"
-
-# The confidence threshold for detecting a license from license text
-confidence-threshold = 0.8
+# Denied licenses
+[[licenses.deny]]
+name = "GPL-2.0"
+[[licenses.deny]]
+name = "GPL-3.0"
+[[licenses.deny]]
+name = "AGPL-3.0"
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected

@@ -32,20 +32,19 @@ allow = [
 ]
 
 # List of explicitly disallowed licenses
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+]
+
+# License clarifications for crates with complex/multiple licenses
 [[licenses.clarify]]
 name = "ring"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 }
 ]
-
-# Denied licenses
-[[licenses.deny]]
-name = "GPL-2.0"
-[[licenses.deny]]
-name = "GPL-3.0"
-[[licenses.deny]]
-name = "AGPL-3.0"
 
 [bans]
 # Lint level for when multiple versions of the same crate are detected

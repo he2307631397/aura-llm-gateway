@@ -17,6 +17,9 @@ git_release_name = "Aura LLM Gateway v{{ version }}"
 # This will create a PR with version bumps and changelog
 pr_labels = ["release"]
 
+# Allow dirty worktree for release commits
+allow_dirty = false
+
 # Individual package configuration
 # publish = false prevents publishing to crates.io
 # git_release_enable = false prevents per-package releases

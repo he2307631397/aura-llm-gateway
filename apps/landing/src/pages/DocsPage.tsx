@@ -1,7 +1,10 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import mermaid from 'mermaid'
 import {
   BookOpen, Zap, Server, Code2, Settings,
   ChevronRight, Menu, X, ExternalLink, DollarSign, Layers
@@ -279,6 +282,44 @@ See the development guide for implementing custom providers.
 `,
 }
 
+// Mermaid component
+function MermaidDiagram({ chart }: { chart: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (ref.current) {
+      try {
+        mermaid.initialize({
+          startOnLoad: true,
+          theme: 'dark',
+          themeVariables: {
+            primaryColor: '#818cf8',
+            primaryTextColor: '#e5e7eb',
+            primaryBorderColor: '#6366f1',
+            lineColor: '#9ca3af',
+            secondaryColor: '#374151',
+            tertiaryColor: '#1f2937',
+            background: '#111827',
+            mainBkg: '#1f2937',
+            secondBkg: '#374151',
+            textColor: '#e5e7eb',
+            fontSize: '14px'
+          }
+        })
+        mermaid.render(`mermaid-${Math.random()}`, chart).then(({ svg }) => {
+          if (ref.current) {
+            ref.current.innerHTML = svg
+          }
+        })
+      } catch (error) {
+        console.error('Mermaid rendering error:', error)
+      }
+    }
+  }, [chart])
+
+  return <div ref={ref} className="my-6 flex justify-center" />
+}
+
 // Markdown components for custom styling - using any for React-Markdown compatibility
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const markdownComponents: any = {
@@ -303,15 +344,40 @@ const markdownComponents: any = {
   li: ({ children }: { children?: React.ReactNode }) => (
     <li className="text-gray-300">{children}</li>
   ),
-  code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) => (
-    inline ? (
-      <code className="text-aura-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm">{children}</code>
-    ) : (
-      <code className="text-gray-300">{children}</code>
+  code: ({ inline, className, children }: { inline?: boolean; className?: string; children?: React.ReactNode }) => {
+    const match = /language-(\w+)/.exec(className || '')
+    const language = match ? match[1] : ''
+    const codeString = String(children).replace(/\n$/, '')
+
+    // Handle Mermaid diagrams
+    if (language === 'mermaid') {
+      return <MermaidDiagram chart={codeString} />
+    }
+
+    // Inline code
+    if (inline) {
+      return <code className="text-aura-400 bg-gray-800 px-1.5 py-0.5 rounded text-sm font-mono">{children}</code>
+    }
+
+    // Code blocks with syntax highlighting
+    return (
+      <SyntaxHighlighter
+        language={language || 'text'}
+        style={vscDarkPlus}
+        customStyle={{
+          margin: '0 0 1rem 0',
+          borderRadius: '0.5rem',
+          fontSize: '0.875rem',
+          background: '#0f172a'
+        }}
+        showLineNumbers={false}
+      >
+        {codeString}
+      </SyntaxHighlighter>
     )
-  ),
+  },
   pre: ({ children }: { children?: React.ReactNode }) => (
-    <pre className="bg-gray-900 rounded-lg p-4 overflow-x-auto mb-4 text-sm">{children}</pre>
+    <div className="mb-4">{children}</div>
   ),
   a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
     <a href={href} className="text-aura-400 hover:text-aura-300 underline" target="_blank" rel="noopener noreferrer">

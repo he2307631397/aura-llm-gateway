@@ -1,14 +1,17 @@
-# Cost Tracking
+# Cost Tracking & Aura Metadata
 
-Aura automatically calculates and includes cost information in every response, enabling you to track LLM spending without maintaining your own pricing data.
+Aura automatically enriches every response with cost information, provider details, and agentic workflow metadata. This enables comprehensive tracking without maintaining your own pricing data.
 
 ## How It Works
 
 1. The gateway maintains pricing data for all supported models
 2. When a response completes, cost is calculated from token usage
 3. The `cost_usd` field is added to the `usage` object
+4. Agentic metadata is extracted from the response output
 
-## Response Format
+## Response Metadata
+
+Every response includes Aura-specific metadata:
 
 ```json
 {
@@ -19,8 +22,76 @@ Aura automatically calculates and includes cost information in every response, e
     "cached_tokens": 0,
     "reasoning_tokens": 0,
     "cost_usd": 0.00075
+  },
+  "metadata": {
+    "aura": {
+      "request_id": "aura_550e8400-e29b-41d4-a716-446655440000",
+      "model": "gpt-4o",
+      "provider": "openai",
+      "gateway_version": "0.1.7",
+      "latency_ms": 523,
+      "agentic": {
+        "output_items_count": 2,
+        "has_tool_calls": true,
+        "tool_calls_count": 1,
+        "tools_used": ["web_search"],
+        "requires_action": false,
+        "has_reasoning": false
+      }
+    }
   }
 }
+```
+
+## Metadata Fields
+
+| Field | Description |
+|-------|-------------|
+| `request_id` | Unique UUID for tracing requests across the gateway |
+| `model` | Model name/ID used for the request |
+| `provider` | Which provider handled the request (openai, anthropic, google) |
+| `gateway_version` | Aura gateway version |
+| `latency_ms` | Total request latency in milliseconds |
+
+## Agentic Metadata
+
+The `agentic` object provides insights for agent workflows:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `output_items_count` | number | Total items in output (messages, tool calls, etc.) |
+| `has_tool_calls` | boolean | Whether response contains function/tool calls |
+| `tool_calls_count` | number | Number of tool calls (if any) |
+| `tools_used` | string[] | Names of tools that were called |
+| `requires_action` | boolean | Whether tool calls need execution |
+| `has_reasoning` | boolean | Whether response includes reasoning items |
+| `reasoning_tokens` | number | Tokens used for model reasoning (if applicable) |
+| `incomplete_reason` | string | Why response was incomplete (if applicable) |
+
+## Use Cases for Agentic Metadata
+
+### Agent Loop Detection
+```typescript
+if (response.metadata.aura.agentic.requires_action) {
+  // Execute pending tool calls and continue the loop
+  const toolResults = await executeTools(response.output);
+  response = await continueConversation(toolResults);
+}
+```
+
+### Reasoning Model Tracking
+```typescript
+// Track reasoning token usage for o1/o3 models
+if (response.metadata.aura.agentic.reasoning_tokens) {
+  console.log(`Reasoning tokens: ${response.metadata.aura.agentic.reasoning_tokens}`);
+}
+```
+
+### Tool Usage Analytics
+```typescript
+// Track which tools are used most
+const toolsUsed = response.metadata.aura.agentic.tools_used;
+analytics.track('tool_usage', { tools: toolsUsed });
 ```
 
 ## Pricing Data

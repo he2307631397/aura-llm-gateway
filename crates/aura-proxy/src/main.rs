@@ -113,11 +113,60 @@ impl AppState {
             .map(|s| s.as_str())
             .unwrap_or("unknown");
 
+        // Extract agentic metadata from response
+        let tool_calls: Vec<&str> = response
+            .output
+            .iter()
+            .filter_map(|item| item.as_function_call())
+            .map(|fc| fc.name.as_str())
+            .collect();
+
+        let tool_calls_count = tool_calls.len();
+        let has_tool_calls = tool_calls_count > 0;
+
+        // Check if response requires action (has pending tool calls)
+        let requires_action = response.output.iter().any(|item| {
+            item.is_function_call() && item.status() == aura_types::ItemStatus::InProgress
+        });
+
+        // Check for reasoning items
+        let has_reasoning = response.output.iter().any(|item| item.is_reasoning());
+
+        // Get reasoning tokens if available
+        let reasoning_tokens = response.usage.as_ref().and_then(|u| u.reasoning_tokens);
+
+        // Build agentic metadata
+        let mut agentic = serde_json::json!({
+            "output_items_count": response.output.len(),
+            "has_tool_calls": has_tool_calls,
+        });
+
+        if has_tool_calls {
+            agentic["tool_calls_count"] = serde_json::json!(tool_calls_count);
+            agentic["tools_used"] = serde_json::json!(tool_calls);
+            agentic["requires_action"] = serde_json::json!(requires_action);
+        }
+
+        if has_reasoning {
+            agentic["has_reasoning"] = serde_json::json!(true);
+        }
+
+        if let Some(tokens) = reasoning_tokens {
+            agentic["reasoning_tokens"] = serde_json::json!(tokens);
+        }
+
+        if let Some(reason) = &response.incomplete_reason {
+            agentic["incomplete_reason"] =
+                serde_json::json!(format!("{:?}", reason).to_lowercase());
+        }
+
         let aura_metadata = serde_json::json!({
             "aura": {
                 "request_id": request_id,
+                "model": response.model,
                 "provider": provider_name,
                 "gateway_version": env!("CARGO_PKG_VERSION"),
+                "agentic": agentic,
             }
         });
 

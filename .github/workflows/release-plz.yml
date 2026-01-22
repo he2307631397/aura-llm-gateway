@@ -1,4 +1,4 @@
-name: Release PR
+name: Release
 
 on:
   push:
@@ -6,73 +6,28 @@ on:
       - main
   workflow_dispatch:
 
-# Workflow-level permissions (required for release-plz to create branches and PRs)
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
-  release-plz:
-    name: Create Release PR
+  release:
+    name: Release
     runs-on: ubuntu-latest
-    # Skip if this is a release commit (tag will be created by create-tag workflow)
+    # Skip if this is a release commit from release-plz itself
     if: "!startsWith(github.event.head_commit.message, 'chore: release')"
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
-
-      - name: Configure git user
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Check for existing release PR or tag
-        id: check
-        run: |
-          VERSION=$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)
-          TAG="v$VERSION"
-
-          # Check if tag already exists
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "::notice::Tag $TAG already exists, skipping"
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Check if there's already an open release PR
-          OPEN_PR=$(gh pr list --label release --state open --limit 1 --json number --jq '.[0].number // empty')
-          if [ -n "$OPEN_PR" ]; then
-            echo "::notice::Release PR #$OPEN_PR already exists"
-            echo "skip=true" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "skip=false" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Run release-plz
-        if: steps.check.outputs.skip != 'true'
         uses: MarcoIeni/release-plz-action@v0.5
+        with:
+          command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cleanup old release branches
-        if: always()
-        run: |
-          # Delete merged/closed release-plz branches older than 7 days
-          gh pr list --label release --state closed --json headRefName,closedAt \
-            | jq -r '.[] | select(.closedAt < (now - 604800)) | .headRefName' \
-            | xargs -I {} git push origin --delete {} 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

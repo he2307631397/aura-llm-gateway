@@ -4,7 +4,8 @@
 //! transforming requests through the appropriate provider.
 
 use aura_core::ProviderError;
-use aura_types::{CreateResponseRequest, StreamEvent};
+use aura_db::NewRequestLog;
+use aura_types::{CreateResponseRequest, ResponseStatus, StreamEvent};
 use axum::{
     extract::State,
     http::StatusCode,
@@ -156,9 +157,35 @@ async fn create_response(
     } else {
         // Non-streaming response - track latency
         let start = Instant::now();
+        let provider_name = provider.name().to_string();
+        let model_id = request.model.clone();
 
         let response = provider.complete(request).await.map_err(|e| {
             error!(error = %e, "Request failed");
+
+            // Log failed request
+            let log = NewRequestLog {
+                response_id: request_id.clone(),
+                conversation_id: None,
+                provider_name: provider_name.clone(),
+                model_id: model_id.clone(),
+                user_id: None,
+                input_tokens: None,
+                output_tokens: None,
+                cached_tokens: None,
+                reasoning_tokens: None,
+                cost_usd: None,
+                latency_ms: Some(start.elapsed().as_millis() as i32),
+                status: "failed".to_string(),
+                error_code: Some(e.error_code().to_string()),
+                error_message: Some(e.to_string()),
+                metadata: None,
+            };
+            tokio::spawn({
+                let state = state.clone();
+                async move { state.log_request(log).await }
+            });
+
             ApiError::from_provider_error(&e)
         })?;
 
@@ -173,6 +200,40 @@ async fn create_response(
             latency_ms = %latency_ms,
             "Response completed"
         );
+
+        // Log successful request to database
+        let usage = response.usage.as_ref();
+        let cost_usd = usage.and_then(|u| u.cost_usd);
+        let log = NewRequestLog {
+            response_id: request_id,
+            conversation_id: None,
+            provider_name,
+            model_id,
+            user_id: None,
+            input_tokens: usage.map(|u| u.input_tokens as i32),
+            output_tokens: usage.map(|u| u.output_tokens as i32),
+            cached_tokens: usage.and_then(|u| u.cached_tokens).map(|t| t as i32),
+            reasoning_tokens: usage.and_then(|u| u.reasoning_tokens).map(|t| t as i32),
+            cost_usd,
+            latency_ms: Some(latency_ms as i32),
+            status: match response.status {
+                ResponseStatus::Completed => "completed",
+                ResponseStatus::Failed => "failed",
+                ResponseStatus::Incomplete => "incomplete",
+                ResponseStatus::InProgress => "in_progress",
+                ResponseStatus::Cancelled => "cancelled",
+            }
+            .to_string(),
+            error_code: None,
+            error_message: None,
+            metadata: response.metadata.clone(),
+        };
+
+        // Spawn log task in background (non-blocking)
+        tokio::spawn({
+            let state = state.clone();
+            async move { state.log_request(log).await }
+        });
 
         Ok(Json(response).into_response())
     }

@@ -98,22 +98,33 @@ analytics.track('tool_usage', { tools: toolsUsed });
 
 Aura includes up-to-date pricing for all supported models. Prices are per 1 million tokens in USD.
 
+*Last updated: January 2026*
+
 ### OpenAI Models
 
 | Model | Input | Output | Cached Input |
 |-------|-------|--------|--------------|
+| gpt-5 | $5.00 | $20.00 | $1.25 |
+| gpt-5.2 | $5.00 | $20.00 | $1.25 |
+| gpt-5-mini | $0.50 | $2.00 | $0.125 |
+| gpt-4.1 | $2.00 | $8.00 | $0.50 |
+| gpt-4.1-mini | $0.40 | $1.60 | $0.10 |
+| gpt-4.1-nano | $0.10 | $0.40 | $0.025 |
 | gpt-4o | $2.50 | $10.00 | $1.25 |
 | gpt-4o-mini | $0.15 | $0.60 | $0.075 |
-| gpt-4-turbo | $10.00 | $30.00 | - |
-| gpt-3.5-turbo | $0.50 | $1.50 | - |
 | o1 | $15.00 | $60.00 | $7.50 |
-| o1-mini | $3.00 | $12.00 | $1.50 |
+| o1-pro | $150.00 | $600.00 | $75.00 |
+| o3 | $2.00 | $8.00 | $1.00 |
 | o3-mini | $1.10 | $4.40 | $0.55 |
+| o4-mini | $1.10 | $4.40 | $0.55 |
 
 ### Anthropic Models
 
 | Model | Input | Output | Cached Input |
 |-------|-------|--------|--------------|
+| claude-opus-4-5 | $15.00 | $75.00 | $1.50 |
+| claude-sonnet-4-5 | $3.00 | $15.00 | $0.30 |
+| claude-haiku-4-5 | $1.00 | $5.00 | $0.10 |
 | claude-3-5-sonnet | $3.00 | $15.00 | $0.30 |
 | claude-3-5-haiku | $0.80 | $4.00 | $0.08 |
 | claude-3-opus | $15.00 | $75.00 | $1.50 |
@@ -122,7 +133,11 @@ Aura includes up-to-date pricing for all supported models. Prices are per 1 mill
 
 | Model | Input | Output | Cached Input |
 |-------|-------|--------|--------------|
-| gemini-2.0-flash | $0.075 | $0.30 | - |
+| gemini-3-pro | $2.50 | $10.00 | $0.625 |
+| gemini-3-flash | $0.15 | $0.60 | $0.0375 |
+| gemini-2.5-pro | $1.25 | $10.00 | $0.3125 |
+| gemini-2.5-flash | $0.30 | $2.50 | $0.075 |
+| gemini-2.0-flash | $0.10 | $0.40 | $0.025 |
 | gemini-1.5-pro | $1.25 | $5.00 | $0.3125 |
 | gemini-1.5-flash | $0.075 | $0.30 | $0.01875 |
 

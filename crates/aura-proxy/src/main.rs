@@ -7,12 +7,13 @@ mod routes;
 
 use anyhow::Context;
 use aura_core::{CostCalculator, OpenAIProvider, Provider};
+use aura_db::{DbPool, NewRequestLog, PoolConfig, RequestLogRepo};
 use axum::Router;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::signal;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
-use tracing::{info, warn, Level};
+use tracing::{debug, error, info, warn, Level};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Application state shared across handlers
@@ -26,11 +27,13 @@ pub struct AppState {
     model_map: Arc<HashMap<String, String>>,
     /// Cost calculator for pricing responses
     cost_calculator: Arc<CostCalculator>,
+    /// Database connection pool (optional)
+    db_pool: Option<DbPool>,
 }
 
 impl AppState {
     /// Creates a new AppState with the given configuration
-    pub fn new(config: aura_core::Config) -> Self {
+    pub fn new(config: aura_core::Config, db_pool: Option<DbPool>) -> Self {
         let mut providers: HashMap<String, Arc<dyn Provider>> = HashMap::new();
         let mut model_map: HashMap<String, String> = HashMap::new();
 
@@ -52,11 +55,42 @@ impl AppState {
         // TODO: Add Anthropic provider when implemented
         // TODO: Add Google provider when implemented
 
+        if db_pool.is_some() {
+            info!("Database connection pool initialized - request logging enabled");
+        } else {
+            warn!("No database connection - request logging disabled");
+        }
+
         Self {
             config: Arc::new(config),
             providers: Arc::new(providers),
             model_map: Arc::new(model_map),
             cost_calculator: Arc::new(CostCalculator::new()),
+            db_pool,
+        }
+    }
+
+    /// Get database pool reference
+    pub fn db_pool(&self) -> Option<&DbPool> {
+        self.db_pool.as_ref()
+    }
+
+    /// Log a completed request to the database (if available)
+    pub async fn log_request(&self, log: NewRequestLog) {
+        if let Some(pool) = &self.db_pool {
+            match RequestLogRepo::create(pool, log).await {
+                Ok(record) => {
+                    debug!(
+                        response_id = %record.response_id,
+                        provider = %record.provider_name,
+                        model = %record.model_id,
+                        "Request logged to database"
+                    );
+                }
+                Err(e) => {
+                    error!(error = %e, "Failed to log request to database");
+                }
+            }
         }
     }
 
@@ -229,8 +263,27 @@ async fn main() -> anyhow::Result<()> {
         config.server.host, config.server.port
     );
 
+    // Optionally connect to database
+    let db_pool = if let Some(ref database_url) = config.database.url {
+        info!("Connecting to database...");
+        let pool_config = PoolConfig::new(database_url);
+        match aura_db::create_pool(pool_config).await {
+            Ok(pool) => {
+                info!("Database connection established");
+                Some(pool)
+            }
+            Err(e) => {
+                warn!(error = %e, "Failed to connect to database - continuing without persistence");
+                None
+            }
+        }
+    } else {
+        info!("DATABASE_URL not configured - running without database");
+        None
+    };
+
     // Create app state
-    let state = AppState::new(config.clone());
+    let state = AppState::new(config.clone(), db_pool);
 
     // Build router with middleware
     let app = Router::new()

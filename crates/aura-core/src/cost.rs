@@ -85,11 +85,19 @@ impl Default for CostCalculator {
 
 impl CostCalculator {
     /// Create a new cost calculator with default pricing data
+    /// Pricing last updated: January 2026
+    /// Sources:
+    /// - OpenAI: https://openai.com/api/pricing/
+    /// - Anthropic: https://www.anthropic.com/pricing
+    /// - Google: https://ai.google.dev/gemini-api/docs/pricing
     pub fn new() -> Self {
         let mut pricing = HashMap::new();
 
-        // OpenAI pricing (as of January 2025)
-        // GPT-4o
+        // =================================================================
+        // OpenAI pricing (as of January 2026)
+        // =================================================================
+
+        // GPT-4o family
         pricing.insert(
             "gpt-4o".to_string(),
             ModelPricing::new(2.50, 10.00).with_cached(1.25),
@@ -103,8 +111,8 @@ impl CostCalculator {
             ModelPricing::new(2.50, 10.00).with_cached(1.25),
         );
         pricing.insert(
-            "gpt-4o-2024-05-13".to_string(),
-            ModelPricing::new(5.00, 15.00),
+            "chatgpt-4o-latest".to_string(),
+            ModelPricing::new(5.00, 15.00).with_cached(2.50),
         );
 
         // GPT-4o mini
@@ -117,33 +125,61 @@ impl CostCalculator {
             ModelPricing::new(0.15, 0.60).with_cached(0.075),
         );
 
-        // GPT-4 Turbo
+        // GPT-4.1 family (2025)
+        pricing.insert(
+            "gpt-4.1".to_string(),
+            ModelPricing::new(2.00, 8.00).with_cached(0.50),
+        );
+        pricing.insert(
+            "gpt-4.1-mini".to_string(),
+            ModelPricing::new(0.40, 1.60).with_cached(0.10),
+        );
+        pricing.insert(
+            "gpt-4.1-nano".to_string(),
+            ModelPricing::new(0.10, 0.40).with_cached(0.025),
+        );
+
+        // GPT-5 family (2026)
+        pricing.insert(
+            "gpt-5".to_string(),
+            ModelPricing::new(5.00, 20.00).with_cached(1.25),
+        );
+        pricing.insert(
+            "gpt-5-2025-12-15".to_string(),
+            ModelPricing::new(5.00, 20.00).with_cached(1.25),
+        );
+        pricing.insert(
+            "gpt-5-mini".to_string(),
+            ModelPricing::new(0.50, 2.00).with_cached(0.125),
+        );
+        pricing.insert(
+            "gpt-5.2".to_string(),
+            ModelPricing::new(5.00, 20.00).with_cached(1.25),
+        );
+        pricing.insert(
+            "gpt-5.2-2026-01-10".to_string(),
+            ModelPricing::new(5.00, 20.00).with_cached(1.25),
+        );
+
+        // GPT-4 Turbo (legacy)
         pricing.insert("gpt-4-turbo".to_string(), ModelPricing::new(10.00, 30.00));
         pricing.insert(
             "gpt-4-turbo-2024-04-09".to_string(),
             ModelPricing::new(10.00, 30.00),
         );
-        pricing.insert(
-            "gpt-4-turbo-preview".to_string(),
-            ModelPricing::new(10.00, 30.00),
-        );
 
-        // GPT-4
+        // GPT-4 (legacy)
         pricing.insert("gpt-4".to_string(), ModelPricing::new(30.00, 60.00));
         pricing.insert("gpt-4-0613".to_string(), ModelPricing::new(30.00, 60.00));
 
-        // GPT-3.5 Turbo
+        // GPT-3.5 Turbo (legacy)
         pricing.insert("gpt-3.5-turbo".to_string(), ModelPricing::new(0.50, 1.50));
         pricing.insert(
             "gpt-3.5-turbo-0125".to_string(),
             ModelPricing::new(0.50, 1.50),
         );
-        pricing.insert(
-            "gpt-3.5-turbo-1106".to_string(),
-            ModelPricing::new(1.00, 2.00),
-        );
 
-        // o1 models (reasoning models)
+        // o1 reasoning models
         pricing.insert(
             "o1".to_string(),
             ModelPricing::new(15.00, 60.00).with_cached(7.50),
@@ -154,19 +190,19 @@ impl CostCalculator {
         );
         pricing.insert("o1-preview".to_string(), ModelPricing::new(15.00, 60.00));
         pricing.insert(
-            "o1-preview-2024-09-12".to_string(),
-            ModelPricing::new(15.00, 60.00),
-        );
-        pricing.insert(
             "o1-mini".to_string(),
             ModelPricing::new(3.00, 12.00).with_cached(1.50),
         );
         pricing.insert(
-            "o1-mini-2024-09-12".to_string(),
-            ModelPricing::new(3.00, 12.00).with_cached(1.50),
+            "o1-pro".to_string(),
+            ModelPricing::new(150.00, 600.00).with_cached(75.00),
         );
 
-        // o3-mini
+        // o3 reasoning models (2025)
+        pricing.insert(
+            "o3".to_string(),
+            ModelPricing::new(2.00, 8.00).with_cached(1.00),
+        );
         pricing.insert(
             "o3-mini".to_string(),
             ModelPricing::new(1.10, 4.40).with_cached(0.55),
@@ -176,7 +212,42 @@ impl CostCalculator {
             ModelPricing::new(1.10, 4.40).with_cached(0.55),
         );
 
-        // Anthropic pricing (as of January 2025)
+        // o4-mini (2025)
+        pricing.insert(
+            "o4-mini".to_string(),
+            ModelPricing::new(1.10, 4.40).with_cached(0.55),
+        );
+
+        // =================================================================
+        // Anthropic pricing (as of January 2026)
+        // =================================================================
+
+        // Claude 4.5 family (2025-2026)
+        pricing.insert(
+            "claude-opus-4-5-20251101".to_string(),
+            ModelPricing::new(15.00, 75.00).with_cached(1.50),
+        );
+        pricing.insert(
+            "claude-opus-4-5".to_string(),
+            ModelPricing::new(15.00, 75.00).with_cached(1.50),
+        );
+        pricing.insert(
+            "claude-sonnet-4-5-20251022".to_string(),
+            ModelPricing::new(3.00, 15.00).with_cached(0.30),
+        );
+        pricing.insert(
+            "claude-sonnet-4-5".to_string(),
+            ModelPricing::new(3.00, 15.00).with_cached(0.30),
+        );
+        pricing.insert(
+            "claude-haiku-4-5-20251201".to_string(),
+            ModelPricing::new(1.00, 5.00).with_cached(0.10),
+        );
+        pricing.insert(
+            "claude-haiku-4-5".to_string(),
+            ModelPricing::new(1.00, 5.00).with_cached(0.10),
+        );
+
         // Claude 3.5 Sonnet
         pricing.insert(
             "claude-3-5-sonnet-20241022".to_string(),
@@ -223,11 +294,46 @@ impl CostCalculator {
             ModelPricing::new(0.25, 1.25).with_cached(0.03),
         );
 
-        // Google Gemini pricing (as of January 2025)
+        // =================================================================
+        // Google Gemini pricing (as of January 2026)
+        // =================================================================
+
+        // Gemini 3 family (2026)
+        pricing.insert(
+            "gemini-3-pro".to_string(),
+            ModelPricing::new(2.50, 10.00).with_cached(0.625),
+        );
+        pricing.insert(
+            "gemini-3-flash".to_string(),
+            ModelPricing::new(0.15, 0.60).with_cached(0.0375),
+        );
+        pricing.insert(
+            "gemini-3-pro-latest".to_string(),
+            ModelPricing::new(2.50, 10.00).with_cached(0.625),
+        );
+
+        // Gemini 2.5 family (2025)
+        pricing.insert(
+            "gemini-2.5-pro".to_string(),
+            ModelPricing::new(1.25, 10.00).with_cached(0.3125),
+        );
+        pricing.insert(
+            "gemini-2.5-flash".to_string(),
+            ModelPricing::new(0.30, 2.50).with_cached(0.075),
+        );
+
         // Gemini 2.0 Flash
         pricing.insert(
+            "gemini-2.0-flash".to_string(),
+            ModelPricing::new(0.10, 0.40).with_cached(0.025),
+        );
+        pricing.insert(
             "gemini-2.0-flash-exp".to_string(),
-            ModelPricing::new(0.0, 0.0), // Free during experimental
+            ModelPricing::new(0.10, 0.40).with_cached(0.025),
+        );
+        pricing.insert(
+            "gemini-2.0-flash-lite".to_string(),
+            ModelPricing::new(0.075, 0.30).with_cached(0.02),
         );
 
         // Gemini 1.5 Pro
@@ -253,10 +359,6 @@ impl CostCalculator {
         // Gemini 1.5 Flash-8B
         pricing.insert(
             "gemini-1.5-flash-8b".to_string(),
-            ModelPricing::new(0.0375, 0.15).with_cached(0.01),
-        );
-        pricing.insert(
-            "gemini-1.5-flash-8b-latest".to_string(),
             ModelPricing::new(0.0375, 0.15).with_cached(0.01),
         );
 

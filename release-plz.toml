@@ -13,32 +13,33 @@ changelog_config = "cliff.toml"
 # Release name for workspace releases
 git_release_name = "Aura LLM Gateway v{{ version }}"
 
-# Automatically determine version from conventional commits
-# This will create a PR with version bumps and changelog
-pr_labels = ["release"]
-
 # Allow dirty worktree for release commits
 allow_dirty = false
 
+# Semver check disabled (not publishing to crates.io)
+semver_check = false
+
 # Individual package configuration
 # publish = false prevents publishing to crates.io
-# git_release_enable = false prevents per-package releases
+# Only aura-proxy creates releases (main binary)
 [[package]]
 name = "aura-types"
 publish = false
-git_release_enable = false
+release = false
 
 [[package]]
 name = "aura-db"
 publish = false
-git_release_enable = false
+release = false
 
 [[package]]
 name = "aura-core"
 publish = false
-git_release_enable = false
+release = false
 
 [[package]]
 name = "aura-proxy"
 publish = false
-git_release_enable = false
+# This is the main package - enable releases for it
+release = true
+git_release_enable = true

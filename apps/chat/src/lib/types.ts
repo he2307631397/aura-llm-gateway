@@ -5,6 +5,14 @@ export interface Message {
   createdAt: Date
   isStreaming?: boolean
   toolInvocations?: ToolInvocation[]
+  usage?: MessageUsage
+}
+
+export interface MessageUsage {
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  cost?: number  // Cost in USD (based on model pricing)
 }
 
 export interface ToolInvocation {

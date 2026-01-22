@@ -1,4 +1,4 @@
-import { Menu, ChevronDown, Sparkles } from 'lucide-react'
+import { Menu, ChevronDown, Sparkles, Wrench } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '../lib/utils'
 import type { Model } from '../lib/types'
@@ -9,6 +9,8 @@ interface HeaderProps {
   onModelChange: (model: Model) => void
   onToggleSidebar: () => void
   sidebarOpen: boolean
+  agentMode: boolean
+  onAgentModeChange: (enabled: boolean) => void
 }
 
 export function Header({
@@ -17,6 +19,8 @@ export function Header({
   onModelChange,
   onToggleSidebar,
   sidebarOpen,
+  agentMode,
+  onAgentModeChange,
 }: HeaderProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -94,8 +98,22 @@ export function Header({
         )}
       </div>
 
-      {/* Right side placeholder */}
-      <div className="w-10" />
+      {/* Agent mode toggle */}
+      <button
+        onClick={() => onAgentModeChange(!agentMode)}
+        className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors",
+          agentMode
+            ? "border-primary-500 bg-primary-500/10 text-primary-400"
+            : "border-border hover:bg-secondary text-muted-foreground"
+        )}
+        title={agentMode ? "Agent mode enabled (with tools)" : "Click to enable agent mode with tools"}
+      >
+        <Wrench className="h-4 w-4" />
+        <span className="text-sm font-medium hidden sm:inline">
+          {agentMode ? "Agent" : "Chat"}
+        </span>
+      </button>
     </header>
   )
 }

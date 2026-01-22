@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/UmaiTech/aura-llm-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/UmaiTech/aura-llm-gateway/actions/workflows/ci.yml)
 [![Security](https://github.com/UmaiTech/aura-llm-gateway/actions/workflows/security.yml/badge.svg)](https://github.com/UmaiTech/aura-llm-gateway/actions/workflows/security.yml)
+[![dependencies](https://deps.rs/repo/github/UmaiTech/aura-llm-gateway/status.svg)](https://deps.rs/repo/github/UmaiTech/aura-llm-gateway)
 [![Release](https://img.shields.io/github/v/release/UmaiTech/aura-llm-gateway)](https://github.com/UmaiTech/aura-llm-gateway/releases)
-[![codecov](https://codecov.io/gh/UmaiTech/aura-llm-gateway/branch/main/graph/badge.svg)](https://codecov.io/gh/UmaiTech/aura-llm-gateway)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-1.75%2B-blue.svg)](https://www.rust-lang.org)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)

@@ -87,9 +87,9 @@ impl CostCalculator {
     /// Create a new cost calculator with default pricing data
     /// Pricing last updated: January 2026
     /// Sources:
-    /// - OpenAI: https://openai.com/api/pricing/
-    /// - Anthropic: https://www.anthropic.com/pricing
-    /// - Google: https://ai.google.dev/gemini-api/docs/pricing
+    /// - OpenAI: <https://openai.com/api/pricing/>
+    /// - Anthropic: <https://www.anthropic.com/pricing>
+    /// - Google: <https://ai.google.dev/gemini-api/docs/pricing>
     pub fn new() -> Self {
         let mut pricing = HashMap::new();
 

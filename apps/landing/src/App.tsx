@@ -73,9 +73,7 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-aura-400 to-primary-500 flex items-center justify-center">
-                <Sparkles className="h-5 w-5 text-white" />
-              </div>
+              <img src="/icon-square.svg" alt="Aura Logo" className="h-9 w-9" />
               <span className="font-semibold text-xl">Aura</span>
             </div>
             <div className="flex items-center gap-4">
@@ -198,7 +196,7 @@ export default function App() {
       <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-gray-800">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-gray-400">
-            <Sparkles className="h-4 w-4" />
+            <img src="/icon-square.svg" alt="Aura" className="h-4 w-4" />
             <span className="text-sm">Aura LLM Gateway</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-gray-500">

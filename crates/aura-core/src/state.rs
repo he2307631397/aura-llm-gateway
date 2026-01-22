@@ -48,7 +48,7 @@ impl AppState {
         }
     }
 
-    /// Creates a new AppState from an Arc<Config>
+    /// Creates a new AppState from an `Arc<Config>`
     ///
     /// Useful when you already have a shared config reference.
     pub fn with_config(config: Arc<Config>) -> Self {

@@ -1,6 +1,8 @@
 import type { CreateResponseRequest, Response, StreamEvent, Message } from './types'
 
-const API_BASE = '/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/v1`
+  : '/v1'
 
 export class AuraAPI {
   private baseUrl: string

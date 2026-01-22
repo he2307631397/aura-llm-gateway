@@ -3,26 +3,32 @@ import { useLocation, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
-  Sparkles, BookOpen, Zap, Server, Code2, Settings,
+  BookOpen, Zap, Server, Code2, Settings,
   ChevronRight, Menu, X, ExternalLink, DollarSign, Layers
 } from 'lucide-react'
 
-// Import all MDX files from src/content at build time using Vite's glob
-const mdxModules = import.meta.glob('../content/**/*.mdx', {
+// Import all MD files from src/content at build time using Vite's glob
+const mdModules = import.meta.glob('../content/**/*.md', {
   query: '?raw',
   import: 'default',
   eager: true
 }) as Record<string, string>
 
-const allMdModules = mdxModules
+const allMdModules = mdModules
+
+// Remove frontmatter from markdown content
+function removeFrontmatter(content: string): string {
+  // Remove YAML frontmatter (--- ... ---)
+  return content.replace(/^---\n[\s\S]*?\n---\n/, '')
+}
 
 // Map file paths to doc paths
 function getDocPath(filePath: string): string {
-  // ../content/index.mdx -> /docs
-  // ../content/api/index.mdx -> /docs/api
-  // ../content/api/create-response.mdx -> /docs/api/create-response
-  // ../content/architecture.mdx -> /docs/architecture
-  const match = filePath.match(/content\/(.+)\.mdx$/)
+  // ../content/index.md -> /docs
+  // ../content/api/index.md -> /docs/api
+  // ../content/api/create-response.md -> /docs/api/create-response
+  // ../content/architecture.md -> /docs/architecture
+  const match = filePath.match(/content\/(.+)\.md$/)
   if (!match) return ''
 
   const path = match[1]
@@ -39,7 +45,7 @@ const docContentFromFiles: Record<string, string> = {}
 for (const [filePath, content] of Object.entries(allMdModules)) {
   const docPath = getDocPath(filePath)
   if (docPath) {
-    docContentFromFiles[docPath] = content
+    docContentFromFiles[docPath] = removeFrontmatter(content)
   }
 }
 
@@ -356,9 +362,7 @@ export function DocsPage() {
                 {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
               <Link to="/" className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-aura-400 to-primary-500 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
+                <img src="/icon-square.svg" alt="Aura Logo" className="h-8 w-8" />
                 <span className="font-semibold text-lg">Aura Docs</span>
               </Link>
             </div>

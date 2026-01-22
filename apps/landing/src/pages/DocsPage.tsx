@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
   Sparkles, BookOpen, Zap, Server, Code2, Settings,
-  ChevronRight, Menu, X, ExternalLink, DollarSign
+  ChevronRight, Menu, X, ExternalLink, DollarSign, Layers
 } from 'lucide-react'
 
 // Import all markdown files from docs/api at build time using Vite's glob
@@ -65,6 +65,7 @@ const docSections = [
     title: 'API Reference',
     items: [
       { title: 'Overview', path: '/docs/api', icon: Code2 },
+      { title: 'Architecture', path: '/docs/api/architecture', icon: Layers },
       { title: 'Create Response', path: '/docs/api/create-response', icon: Server },
       { title: 'Streaming', path: '/docs/api/streaming', icon: Zap },
       { title: 'Cost Tracking', path: '/docs/api/cost-tracking', icon: DollarSign },

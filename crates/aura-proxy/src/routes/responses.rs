@@ -17,7 +17,7 @@ use futures_util::StreamExt;
 use serde::Serialize;
 use std::convert::Infallible;
 use std::time::{Duration, Instant};
-use tracing::{error, info, instrument};
+use tracing::{debug, error, info, instrument, warn};
 use uuid::Uuid;
 
 use crate::AppState;

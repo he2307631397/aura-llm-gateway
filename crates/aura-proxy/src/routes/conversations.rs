@@ -4,7 +4,6 @@ use aura_db::{ConversationRepo, MessageRepo, ResponseRepo};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::IntoResponse,
     routing::{delete, get},
     Json, Router,
 };

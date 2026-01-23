@@ -4,6 +4,8 @@
 [workspace]
 # Git tag format for releases
 git_tag_name = "v{{ version }}"
+# Enable creating git tags (required for triggering build workflow)
+git_tag_enable = true
 # Enable GitHub releases
 git_release_enable = true
 # Changelog update strategy

@@ -10,139 +10,28 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  release-plz-pr:
-    name: Create/Update Release PR
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    concurrency:
-      group: release-plz-pr-${{ github.ref }}
-      cancel-in-progress: false
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup git branch
-        run: |
-          git fetch origin
-          git checkout -B main origin/main
-          git log -1 --format='%H %s'
-
-      - name: Wait for commit propagation
-        id: wait-for-commit
-        run: |
-          echo "Waiting for GitHub API to fully sync commit..."
-          sleep 30  # Increased initial wait for API propagation
-
-          COMMIT_SHA="${{ github.sha }}"
-          REPO="${{ github.repository }}"
-
-          echo "Verifying commit $COMMIT_SHA is available across all API endpoints..."
-
-          for i in {1..15}; do
-            # Check standard commits endpoint
-            if ! gh api "/repos/$REPO/commits/$COMMIT_SHA" &>/dev/null; then
-              echo "Attempt $i/15: Commit not visible on commits endpoint, waiting 10s..."
-              sleep 10
-              continue
-            fi
-
-            # Check git commits endpoint (used by refs API for branch creation)
-            if ! gh api "/repos/$REPO/git/commits/$COMMIT_SHA" &>/dev/null; then
-              echo "Attempt $i/15: Git commit data not ready, waiting 10s..."
-              sleep 10
-              continue
-            fi
-
-            # Check git trees endpoint (verifies full commit data is available)
-            TREE_SHA=$(gh api "/repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha' 2>/dev/null || echo "")
-            if [ -z "$TREE_SHA" ]; then
-              echo "Attempt $i/15: Unable to get tree SHA, waiting 10s..."
-              sleep 10
-              continue
-            fi
-
-            echo "✓ Commit $COMMIT_SHA is fully synced (tree: $TREE_SHA)"
-            echo "ready=true" >> $GITHUB_OUTPUT
-            exit 0
-          done
-
-          echo "❌ Timeout waiting for commit sync after ~3 minutes"
-          echo "ready=false" >> $GITHUB_OUTPUT
-          exit 0  # Don't fail the step, but mark not ready
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install Rust toolchain
-        if: steps.wait-for-commit.outputs.ready == 'true'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install release-plz
-        if: steps.wait-for-commit.outputs.ready == 'true'
-        uses: taiki-e/install-action@v2
-        with:
-          tool: release-plz
-
-      - name: Run release-plz (create PR)
-        if: steps.wait-for-commit.outputs.ready == 'true'
-        run: |
-          # Retry logic for release-plz in case of transient API failures
-          MAX_RETRIES=3
-          RETRY_DELAY=30
-
-          for attempt in $(seq 1 $MAX_RETRIES); do
-            echo "Attempt $attempt/$MAX_RETRIES: Running release-plz release-pr..."
-
-            if release-plz release-pr --git-token "$GITHUB_TOKEN"; then
-              echo "✓ release-plz release-pr succeeded"
-              exit 0
-            fi
-
-            if [ $attempt -lt $MAX_RETRIES ]; then
-              echo "⚠ release-plz failed, retrying in ${RETRY_DELAY}s..."
-              sleep $RETRY_DELAY
-              RETRY_DELAY=$((RETRY_DELAY * 2))  # Exponential backoff
-            fi
-          done
-
-          echo "❌ release-plz failed after $MAX_RETRIES attempts"
-          exit 1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-
-      - name: Skip notice
-        if: steps.wait-for-commit.outputs.ready != 'true'
-        run: |
-          echo "⚠ Skipping release-plz: commit not fully propagated to GitHub API"
-          echo "This is usually a transient issue - the next push should trigger successfully"
-
-  release-plz-release:
-    name: Publish Releases
+  release-plz:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup git branch
-        run: |
-          git fetch origin
-          git checkout -B main origin/main
-          git log -1 --format='%H %s'
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Run release-plz (create tags)
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run release-plz
         uses: MarcoIeni/release-plz-action@v0.5
-        with:
-          command: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}

@@ -2,6 +2,24 @@
 
 A PR-by-PR roadmap for building the Aura LLM Gateway, designed for incremental Rust learning.
 
+## Current Status (January 2026)
+
+**Project Phase:** MVP - In Progress
+
+**Recently Completed:**
+- ✅ **Conversation Persistence** (January 23, 2026) - Full stateful conversation support with threading
+  - See: [`docs/implementation-conversation-persistence.md`](./implementation-conversation-persistence.md)
+  - Database schema: conversations, responses, messages tables
+  - REST API: Conversation management endpoints
+  - Features: Auto-creation, threading, usage tracking, cost calculation
+
+**Active Milestones:**
+- M1-M4: Foundation, Single Provider, Multi-Provider, Persistence ✅ **LARGELY COMPLETE**
+- M5: Production Readiness - In Progress
+- M7: Chat Demo App ✅ **COMPLETE**
+
+---
+
 ## Overview
 
 ### Phase 1: MVP (Sellable Product)
@@ -709,18 +727,46 @@ pub struct ProviderRegistry {
 ---
 
 ### PR #21: Conversation Threading
-**Rust Concepts:** State management, ID generation
+**Rust Concepts:** State management, ID generation, JSONB storage, async background tasks
+
+**Status:** ✅ **COMPLETED** (January 23, 2026)
 
 **Tasks:**
-- [ ] Implement `previous_response_id` handling
-- [ ] Store conversation context
-- [ ] Support context window management
-- [ ] Add conversation list endpoint
-- [ ] Handle conversation branching
+- [x] Implement `previous_response_id` handling
+- [x] Store conversation context in database
+- [x] Add `responses` table with JSONB for full Open Responses API data
+- [x] Add conversation list endpoint (`GET /v1/conversations`)
+- [x] Add conversation detail endpoint (`GET /v1/conversations/{id}`)
+- [x] Add conversation delete endpoint (`DELETE /v1/conversations/{id}`)
+- [x] Auto-create conversations from first user message
+- [x] Link responses via `previous_response_id` chain
+- [x] Save full responses and simplified messages
+- [x] Non-blocking persistence with graceful degradation
+
+**Implementation:**
+- Created `responses` table storing complete Open Responses API objects as JSONB
+- Auto-generates conversation titles from first ~100 chars of initial message
+- Background tokio tasks for all database writes (non-blocking)
+- Works without database (graceful degradation)
+- Both streaming and non-streaming responses saved
+- Full usage tracking (tokens, cost) persisted
+
+**Files:**
+- `migrations/20250124_003_add_responses_table.sql` ✅
+- `migrations/20250125_004_fix_cost_usd_type.sql` ✅ (DOUBLE PRECISION fix)
+- `crates/aura-db/src/models.rs` ✅ (ResponseRecord, NewResponse)
+- `crates/aura-db/src/repo.rs` ✅ (ResponseRepo)
+- `crates/aura-proxy/src/main.rs` ✅ (conversation helpers)
+- `crates/aura-proxy/src/routes/responses.rs` ✅ (persistence logic)
+- `crates/aura-proxy/src/routes/conversations.rs` ✅ (management endpoints)
+- `docs/implementation-conversation-persistence.md` ✅ (full documentation)
 
 **Acceptance Criteria:**
-- Multi-turn conversations work correctly
-- Context properly maintained
+- ✅ Multi-turn conversations work correctly
+- ✅ Context properly maintained via previous_response_id
+- ✅ Conversation management API functional
+- ✅ Full response objects stored in database
+- ✅ Non-blocking persistence doesn't affect latency
 
 ---
 

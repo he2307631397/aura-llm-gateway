@@ -1,5 +1,9 @@
 {
   "index": "Introduction",
+  "quickstart": "Quick Start",
   "api": "API Reference",
-  "architecture": "Architecture"
+  "organizations": "Organizations & End-Users",
+  "architecture": "Architecture",
+  "configuration": "Configuration",
+  "roadmap": "Roadmap"
 }

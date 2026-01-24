@@ -2,6 +2,8 @@
   "index": "Overview",
   "authentication": "Authentication",
   "create-response": "Create Response",
+  "conversations": "Conversations",
   "streaming": "Streaming",
-  "cost-tracking": "Cost Tracking"
+  "cost-tracking": "Cost Tracking",
+  "errors": "Error Reference"
 }

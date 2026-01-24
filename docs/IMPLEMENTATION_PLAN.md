@@ -1421,18 +1421,22 @@ Interactive, beautiful API documentation.
   - Add custom MDX components (Callout, CodeGroup, Tabs)
 
 **Missing Documentation:**
-- [ ] Conversation threading guide (`previous_response_id` usage)
-- [ ] Provider credentials guide (storing org-specific API keys)
-- [ ] Deployment guide (Docker, Kubernetes, production setup)
-- [ ] Error reference (complete error codes and troubleshooting)
+- [x] Conversation threading guide (`previous_response_id` usage) ✅
+- [x] Provider credentials guide (storing org-specific API keys) ✅
+- [x] Deployment guide (Docker, Kubernetes, production setup) ✅
+- [x] Error reference (complete error codes and troubleshooting) ✅
 - [ ] Rate limiting guide (per-key, per-user limits)
 - [ ] Webhooks guide (when implemented)
 
 **Landing Page Additions:**
 - [x] Organizations & End-Users guide ✅ (January 2026)
 - [x] Authentication guide ✅ (January 2026)
-- [ ] Providers section navigation (_meta.json)
-- [ ] Concepts section navigation (_meta.json)
+- [x] Conversations guide ✅ (January 2026)
+- [x] Provider Credentials guide ✅ (January 2026)
+- [x] Deployment guide ✅ (January 2026)
+- [x] Error Reference ✅ (January 2026)
+- [x] Providers section navigation (_meta.json) ✅
+- [x] Concepts section navigation (_meta.json) ✅
 
 **Technical Writing:**
 - [ ] Add API examples for all endpoints

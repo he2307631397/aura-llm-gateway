@@ -3,9 +3,11 @@
 //! This module contains the `Provider` trait and implementations for various
 //! LLM providers (OpenAI, Anthropic, Google, etc.).
 
+mod anthropic;
 mod error;
 mod openai;
 
+pub use anthropic::AnthropicProvider;
 pub use error::ProviderError;
 pub use openai::OpenAIProvider;
 

@@ -6,9 +6,9 @@
 mod routes;
 
 use anyhow::Context;
-use aura_core::{CostCalculator, OpenAIProvider, Provider};
+use aura_core::{AnthropicProvider, CostCalculator, OpenAIProvider, Provider};
 use aura_db::{DbPool, NewRequestLog, PoolConfig, RequestLogRepo};
-use axum::Router;
+use axum::{middleware, Router};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::signal;
@@ -53,7 +53,21 @@ impl AppState {
             warn!("OpenAI API key not configured - OpenAI provider disabled");
         }
 
-        // TODO: Add Anthropic provider when implemented
+        // Register Anthropic provider if API key is configured
+        if let Some(api_key) = &config.providers.anthropic_api_key {
+            info!("Registering Anthropic provider");
+            let anthropic = Arc::new(AnthropicProvider::new(api_key)) as Arc<dyn Provider>;
+
+            // Map all supported models to this provider
+            for model in anthropic.models() {
+                model_map.insert(model.to_string(), "anthropic".to_string());
+            }
+
+            providers.insert("anthropic".to_string(), anthropic);
+        } else {
+            warn!("Anthropic API key not configured - Anthropic provider disabled");
+        }
+
         // TODO: Add Google provider when implemented
 
         if db_pool.is_some() {
@@ -476,6 +490,11 @@ async fn main() -> anyhow::Result<()> {
     // Build router with middleware
     let app = Router::new()
         .merge(routes::app_router())
+        // Authentication middleware
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            routes::auth_middleware,
+        ))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))

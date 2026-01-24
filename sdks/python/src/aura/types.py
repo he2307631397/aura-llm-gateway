@@ -7,10 +7,9 @@ Pydantic models for the Open Responses API types.
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal, Union
 
 from pydantic import BaseModel, Field
-
 
 # ============================================================================
 # Enums
@@ -19,6 +18,7 @@ from pydantic import BaseModel, Field
 
 class ResponseStatus(str, Enum):
     """Status of a response."""
+
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -28,6 +28,7 @@ class ResponseStatus(str, Enum):
 
 class ItemType(str, Enum):
     """Type of an item in a response."""
+
     MESSAGE = "message"
     FUNCTION_CALL = "function_call"
     FUNCTION_CALL_OUTPUT = "function_call_output"
@@ -36,6 +37,7 @@ class ItemType(str, Enum):
 
 class Role(str, Enum):
     """Role of a message."""
+
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
@@ -48,16 +50,18 @@ class Role(str, Enum):
 
 class TextContent(BaseModel):
     """Text content within a message."""
+
     type: Literal["text"] = "text"
     text: str
 
 
 class ImageContent(BaseModel):
     """Image content within a message."""
+
     type: Literal["image"] = "image"
-    url: Optional[str] = None
-    base64: Optional[str] = None
-    media_type: Optional[str] = None
+    url: str | None = None
+    base64: str | None = None
+    media_type: str | None = None
 
 
 Content = Union[TextContent, ImageContent]
@@ -70,44 +74,46 @@ Content = Union[TextContent, ImageContent]
 
 class MessageItem(BaseModel):
     """A message item in the conversation."""
+
     type: Literal["message"] = "message"
-    id: Optional[str] = None
+    id: str | None = None
     role: Role
     content: list[Content]
-    status: Optional[str] = None
+    status: str | None = None
 
     @property
     def text(self) -> str:
         """Get the text content of the message."""
-        return "".join(
-            c.text for c in self.content if isinstance(c, TextContent)
-        )
+        return "".join(c.text for c in self.content if isinstance(c, TextContent))
 
 
 class FunctionCallItem(BaseModel):
     """A function call item."""
+
     type: Literal["function_call"] = "function_call"
-    id: Optional[str] = None
+    id: str | None = None
     call_id: str
     name: str
     arguments: str
-    status: Optional[str] = None
+    status: str | None = None
 
 
 class FunctionCallOutputItem(BaseModel):
     """Output from a function call."""
+
     type: Literal["function_call_output"] = "function_call_output"
-    id: Optional[str] = None
+    id: str | None = None
     call_id: str
     output: str
 
 
 class ReasoningItem(BaseModel):
     """A reasoning/thinking item."""
+
     type: Literal["reasoning"] = "reasoning"
-    id: Optional[str] = None
+    id: str | None = None
     content: list[TextContent]
-    status: Optional[str] = None
+    status: str | None = None
 
     @property
     def text(self) -> str:
@@ -125,13 +131,15 @@ Item = Union[MessageItem, FunctionCallItem, FunctionCallOutputItem, ReasoningIte
 
 class FunctionParameter(BaseModel):
     """A parameter for a function."""
+
     type: str
-    description: Optional[str] = None
-    enum: Optional[list[str]] = None
+    description: str | None = None
+    enum: list[str] | None = None
 
 
 class FunctionParameters(BaseModel):
     """Parameters schema for a function."""
+
     type: Literal["object"] = "object"
     properties: dict[str, FunctionParameter] = Field(default_factory=dict)
     required: list[str] = Field(default_factory=list)
@@ -139,13 +147,15 @@ class FunctionParameters(BaseModel):
 
 class FunctionDefinition(BaseModel):
     """Definition of a function tool."""
+
     name: str
-    description: Optional[str] = None
-    parameters: Optional[FunctionParameters] = None
+    description: str | None = None
+    parameters: FunctionParameters | None = None
 
 
 class Tool(BaseModel):
     """A tool that can be used by the model."""
+
     type: Literal["function"] = "function"
     function: FunctionDefinition
 
@@ -153,9 +163,9 @@ class Tool(BaseModel):
     def function_tool(
         cls,
         name: str,
-        description: Optional[str] = None,
-        parameters: Optional[dict[str, Any]] = None,
-    ) -> "Tool":
+        description: str | None = None,
+        parameters: dict[str, Any] | None = None,
+    ) -> Tool:
         """Create a function tool."""
         params = None
         if parameters:
@@ -182,12 +192,13 @@ class Tool(BaseModel):
 
 class Usage(BaseModel):
     """Token usage information."""
+
     input_tokens: int = 0
     output_tokens: int = 0
     total_tokens: int = 0
-    input_tokens_details: Optional[dict[str, int]] = None
-    output_tokens_details: Optional[dict[str, int]] = None
-    cost_usd: Optional[float] = None
+    input_tokens_details: dict[str, int] | None = None
+    output_tokens_details: dict[str, int] | None = None
+    cost_usd: float | None = None
 
 
 # ============================================================================
@@ -197,39 +208,43 @@ class Usage(BaseModel):
 
 class ResponseError(BaseModel):
     """Error information in a response."""
+
     code: str
     message: str
-    param: Optional[str] = None
+    param: str | None = None
 
 
 class AuraMetadata(BaseModel):
     """Aura gateway metadata."""
-    request_id: Optional[str] = None
-    model: Optional[str] = None
-    provider: Optional[str] = None
-    gateway_version: Optional[str] = None
-    latency_ms: Optional[int] = None
-    agentic: Optional[dict[str, Any]] = None
+
+    request_id: str | None = None
+    model: str | None = None
+    provider: str | None = None
+    gateway_version: str | None = None
+    latency_ms: int | None = None
+    agentic: dict[str, Any] | None = None
 
 
 class ResponseMetadata(BaseModel):
     """Metadata attached to a response."""
-    aura: Optional[AuraMetadata] = None
+
+    aura: AuraMetadata | None = None
 
 
 class Response(BaseModel):
     """A response from the Aura API."""
+
     id: str
     object: Literal["response"] = "response"
     created_at: int
     status: ResponseStatus
     model: str
     output: list[Item] = Field(default_factory=list)
-    usage: Optional[Usage] = None
-    error: Optional[ResponseError] = None
-    metadata: Optional[ResponseMetadata] = None
-    previous_response_id: Optional[str] = None
-    conversation_id: Optional[str] = None
+    usage: Usage | None = None
+    error: ResponseError | None = None
+    metadata: ResponseMetadata | None = None
+    previous_response_id: str | None = None
+    conversation_id: str | None = None
 
     @property
     def output_text(self) -> str:
@@ -267,36 +282,42 @@ class Response(BaseModel):
 
 class StreamEventBase(BaseModel):
     """Base class for stream events."""
+
     type: str
-    sequence: Optional[int] = None
+    sequence: int | None = None
 
 
 class ResponseCreatedEvent(StreamEventBase):
     """Event when a response is created."""
+
     type: Literal["response.created"] = "response.created"
     response: Response
 
 
 class ResponseInProgressEvent(StreamEventBase):
     """Event when a response is in progress."""
+
     type: Literal["response.in_progress"] = "response.in_progress"
     response: Response
 
 
 class ResponseCompletedEvent(StreamEventBase):
     """Event when a response is completed."""
+
     type: Literal["response.completed"] = "response.completed"
     response: Response
 
 
 class ResponseFailedEvent(StreamEventBase):
     """Event when a response fails."""
+
     type: Literal["response.failed"] = "response.failed"
     response: Response
 
 
 class OutputItemAddedEvent(StreamEventBase):
     """Event when an output item is added."""
+
     type: Literal["response.output_item.added"] = "response.output_item.added"
     item: Item
     output_index: int
@@ -304,6 +325,7 @@ class OutputItemAddedEvent(StreamEventBase):
 
 class OutputItemDoneEvent(StreamEventBase):
     """Event when an output item is complete."""
+
     type: Literal["response.output_item.done"] = "response.output_item.done"
     item: Item
     output_index: int
@@ -311,6 +333,7 @@ class OutputItemDoneEvent(StreamEventBase):
 
 class TextDeltaEvent(StreamEventBase):
     """Event for text content delta."""
+
     type: Literal["response.output_text.delta"] = "response.output_text.delta"
     delta: str
     output_index: int
@@ -319,6 +342,7 @@ class TextDeltaEvent(StreamEventBase):
 
 class TextDoneEvent(StreamEventBase):
     """Event when text content is complete."""
+
     type: Literal["response.output_text.done"] = "response.output_text.done"
     text: str
     output_index: int
@@ -327,6 +351,7 @@ class TextDoneEvent(StreamEventBase):
 
 class FunctionCallDeltaEvent(StreamEventBase):
     """Event for function call arguments delta."""
+
     type: Literal["response.function_call.delta"] = "response.function_call.delta"
     delta: str
     output_index: int
@@ -335,6 +360,7 @@ class FunctionCallDeltaEvent(StreamEventBase):
 
 class FunctionCallDoneEvent(StreamEventBase):
     """Event when function call is complete."""
+
     type: Literal["response.function_call.done"] = "response.function_call.done"
     item: FunctionCallItem
     output_index: int
@@ -342,6 +368,7 @@ class FunctionCallDoneEvent(StreamEventBase):
 
 class ErrorEvent(StreamEventBase):
     """Event for errors."""
+
     type: Literal["error"] = "error"
     error: ResponseError
 
@@ -368,8 +395,9 @@ StreamEvent = Union[
 
 class InputMessage(BaseModel):
     """A message to send as input."""
+
     role: Role
-    content: Union[str, list[Content]]
+    content: str | list[Content]
 
     def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         """Convert to dict, handling string content."""

@@ -41,6 +41,7 @@ class AuraError(Exception):
 
 class APIError(AuraError):
     """Error returned by the Aura API."""
+
     pass
 
 

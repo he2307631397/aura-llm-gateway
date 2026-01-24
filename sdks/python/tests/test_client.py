@@ -1,16 +1,17 @@
 """Tests for Aura SDK client."""
 
 import json
-import pytest
 from unittest.mock import patch
+
+import pytest
 
 from aura import AuraClient
 from aura.exceptions import (
+    APIError,
     AuthenticationError,
     BadRequestError,
-    RateLimitError,
     NotFoundError,
-    APIError,
+    RateLimitError,
 )
 
 

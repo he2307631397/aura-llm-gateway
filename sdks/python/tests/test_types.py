@@ -1,20 +1,17 @@
 """Tests for Aura SDK types."""
 
-import pytest
 from aura.types import (
+    MessageItem,
+    ReasoningItem,
     Response,
     ResponseStatus,
-    MessageItem,
-    FunctionCallItem,
-    ReasoningItem,
-    TextContent,
-    Usage,
     Role,
+    TextContent,
     Tool,
-    InputMessage,
-    user_message,
+    Usage,
     assistant_message,
     system_message,
+    user_message,
 )
 
 

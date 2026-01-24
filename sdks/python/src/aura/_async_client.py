@@ -7,7 +7,8 @@ Async client class for interacting with the Aura LLM Gateway.
 from __future__ import annotations
 
 import os
-from typing import Any, AsyncIterator, Optional, Union
+from collections.abc import AsyncIterator
+from typing import Any, cast
 
 import httpx
 
@@ -21,23 +22,22 @@ from aura.exceptions import (
     RateLimitError,
 )
 from aura.types import (
-    InputMessage,
-    Response,
-    StreamEvent,
-    Tool,
-    ResponseCreatedEvent,
-    ResponseInProgressEvent,
-    ResponseCompletedEvent,
-    ResponseFailedEvent,
-    OutputItemAddedEvent,
-    OutputItemDoneEvent,
-    TextDeltaEvent,
-    TextDoneEvent,
+    ErrorEvent,
     FunctionCallDeltaEvent,
     FunctionCallDoneEvent,
-    ErrorEvent,
+    InputMessage,
+    OutputItemAddedEvent,
+    OutputItemDoneEvent,
+    Response,
+    ResponseCompletedEvent,
+    ResponseCreatedEvent,
+    ResponseFailedEvent,
+    ResponseInProgressEvent,
+    StreamEvent,
+    TextDeltaEvent,
+    TextDoneEvent,
+    Tool,
 )
-
 
 DEFAULT_BASE_URL = "http://localhost:8080"
 DEFAULT_TIMEOUT = 60.0
@@ -50,24 +50,24 @@ class AsyncResponses:
     Handles creating responses (completions) from the Aura gateway.
     """
 
-    def __init__(self, client: "AsyncAuraClient") -> None:
+    def __init__(self, client: AsyncAuraClient) -> None:
         self._client = client
 
     async def create(
         self,
         *,
         model: str,
-        input: Union[str, list[InputMessage], list[dict[str, Any]]],
-        instructions: Optional[str] = None,
-        tools: Optional[list[Tool]] = None,
-        tool_choice: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
+        input: str | list[InputMessage] | list[dict[str, Any]],
+        instructions: str | None = None,
+        tools: list[Tool] | None = None,
+        tool_choice: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        top_p: float | None = None,
         stream: bool = False,
-        previous_response_id: Optional[str] = None,
+        previous_response_id: str | None = None,
         **kwargs: Any,
-    ) -> Union[Response, AsyncIterator[StreamEvent]]:
+    ) -> Response | AsyncIterator[StreamEvent]:
         """
         Create a response from the model.
 
@@ -129,15 +129,15 @@ class AsyncResponses:
         self,
         *,
         model: str,
-        input: Union[str, list[InputMessage], list[dict[str, Any]]],
-        instructions: Optional[str] = None,
-        tools: Optional[list[Tool]] = None,
-        tool_choice: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        top_p: Optional[float] = None,
+        input: str | list[InputMessage] | list[dict[str, Any]],
+        instructions: str | None = None,
+        tools: list[Tool] | None = None,
+        tool_choice: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        top_p: float | None = None,
         stream: bool = False,
-        previous_response_id: Optional[str] = None,
+        previous_response_id: str | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Build the request payload."""
@@ -185,9 +185,7 @@ class AsyncResponses:
         response = await self._client._request("POST", "/v1/responses", json=payload)
         return Response.model_validate(response)
 
-    async def _create_stream(
-        self, payload: dict[str, Any]
-    ) -> AsyncIterator[StreamEvent]:
+    async def _create_stream(self, payload: dict[str, Any]) -> AsyncIterator[StreamEvent]:
         """Create a streaming response."""
         async for event in self._client._stream("POST", "/v1/responses", json=payload):
             yield event
@@ -209,10 +207,10 @@ class AsyncAuraClient:
     def __init__(
         self,
         *,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         timeout: float = DEFAULT_TIMEOUT,
-        headers: Optional[dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         """
         Initialize the async Aura client.
@@ -224,9 +222,9 @@ class AsyncAuraClient:
             headers: Additional headers to include in requests.
         """
         self.api_key = api_key or os.environ.get("AURA_API_KEY")
-        self.base_url = (
-            base_url or os.environ.get("AURA_BASE_URL") or DEFAULT_BASE_URL
-        ).rstrip("/")
+        self.base_url = (base_url or os.environ.get("AURA_BASE_URL") or DEFAULT_BASE_URL).rstrip(
+            "/"
+        )
         self.timeout = timeout
 
         # Build default headers
@@ -253,7 +251,7 @@ class AsyncAuraClient:
         """Close the HTTP client."""
         await self._http.aclose()
 
-    async def __aenter__(self) -> "AsyncAuraClient":
+    async def __aenter__(self) -> AsyncAuraClient:
         return self
 
     async def __aexit__(self, *args: Any) -> None:
@@ -277,7 +275,7 @@ class AsyncAuraClient:
     def _handle_response(self, response: httpx.Response) -> dict[str, Any]:
         """Handle the HTTP response, raising appropriate errors."""
         if response.is_success:
-            return response.json()
+            return cast(dict[str, Any], response.json())
 
         # Try to parse error response
         try:
@@ -335,9 +333,7 @@ class AsyncAuraClient:
         except httpx.TimeoutException as e:
             raise APITimeoutError(f"Request timed out: {e}") from e
 
-    async def _parse_sse_stream(
-        self, response: httpx.Response
-    ) -> AsyncIterator[StreamEvent]:
+    async def _parse_sse_stream(self, response: httpx.Response) -> AsyncIterator[StreamEvent]:
         """Parse Server-Sent Events from the response stream."""
         buffer = ""
 
@@ -350,7 +346,7 @@ class AsyncAuraClient:
                 if event is not None:
                     yield event
 
-    def _parse_sse_event(self, event_str: str) -> Optional[StreamEvent]:
+    def _parse_sse_event(self, event_str: str) -> StreamEvent | None:
         """Parse a single SSE event."""
         event_type = None
         data_lines = []
@@ -372,15 +368,14 @@ class AsyncAuraClient:
 
         try:
             import json
+
             data = json.loads(data_str)
         except json.JSONDecodeError:
             return None
 
         return self._parse_event_data(event_type or data.get("type"), data)
 
-    def _parse_event_data(
-        self, event_type: Optional[str], data: dict[str, Any]
-    ) -> Optional[StreamEvent]:
+    def _parse_event_data(self, event_type: str | None, data: dict[str, Any]) -> StreamEvent | None:
         """Parse event data into the appropriate StreamEvent type."""
         if not event_type:
             return None
@@ -402,7 +397,11 @@ class AsyncAuraClient:
         event_class = event_map.get(event_type)
         if event_class:
             try:
-                return event_class.model_validate(data)
+                # All event classes are Pydantic models with model_validate
+                return cast(
+                    StreamEvent,
+                    event_class.model_validate(data),  # type: ignore[attr-defined]
+                )
             except Exception:
                 return None
 

@@ -1,15 +1,14 @@
 """Tests for Aura SDK exceptions."""
 
-import pytest
 from aura.exceptions import (
-    AuraError,
+    APIConnectionError,
     APIError,
+    APITimeoutError,
+    AuraError,
     AuthenticationError,
     BadRequestError,
-    RateLimitError,
     NotFoundError,
-    APIConnectionError,
-    APITimeoutError,
+    RateLimitError,
 )
 
 

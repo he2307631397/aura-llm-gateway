@@ -16,7 +16,7 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, warn};
+use tracing::warn;
 use uuid::Uuid;
 
 use crate::AppState;
@@ -61,7 +61,6 @@ pub struct AuthErrorInner {
 }
 
 impl AuthError {
-    #[allow(dead_code)]
     fn missing_auth() -> Self {
         Self {
             error: AuthErrorInner {
@@ -149,14 +148,13 @@ pub async fn auth_middleware(
     let token = match auth_header {
         Some(h) if h.starts_with("Bearer ") => &h[7..],
         _ => {
-            // Check if auth is required (database configured)
-            if state.db_pool().is_some() {
-                // For now, allow requests without auth if no API keys exist
-                // This allows initial setup
-                debug!("No Authorization header provided");
+            // No database configured = development mode, skip auth
+            if state.db_pool().is_none() {
                 return Ok(next.run(request).await);
             }
-            return Ok(next.run(request).await);
+            // Require authentication
+            warn!("Request missing Authorization header");
+            return Err(AuthError::missing_auth());
         }
     };
 

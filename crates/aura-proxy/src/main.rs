@@ -7,7 +7,7 @@ mod routes;
 
 use anyhow::Context;
 use aura_core::{AnthropicProvider, CostCalculator, OpenAIProvider, Provider};
-use aura_db::{DbPool, NewRequestLog, PoolConfig, RequestLogRepo};
+use aura_db::{ApiKeyUsageRepo, DbPool, NewApiKeyUsage, NewRequestLog, PoolConfig, RequestLogRepo};
 use axum::{middleware, Router};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -412,6 +412,65 @@ impl AppState {
                         error!(error = %e, item_id = %msg.id, "Failed to save message to database");
                     }
                 }
+            }
+        }
+    }
+
+    /// Record API key usage to the database
+    pub async fn record_api_key_usage(
+        &self,
+        auth: &routes::AuthContext,
+        response: &aura_types::Response,
+        request: &aura_types::CreateResponseRequest,
+    ) {
+        let Some(pool) = &self.db_pool else {
+            return;
+        };
+
+        let usage = match &response.usage {
+            Some(u) => u,
+            None => {
+                debug!("No usage data in response, skipping usage recording");
+                return;
+            }
+        };
+
+        let provider_name = self
+            .model_map
+            .get(&response.model)
+            .map(|s| s.as_str())
+            .unwrap_or("unknown");
+
+        let new_usage = NewApiKeyUsage {
+            api_key_id: auth.api_key.id,
+            request_id: response.id.clone(),
+            model_id: response.model.clone(),
+            provider_name: provider_name.to_string(),
+            input_tokens: usage.input_tokens as i32,
+            output_tokens: usage.output_tokens as i32,
+            cached_tokens: usage.cached_tokens.map(|t| t as i32),
+            reasoning_tokens: usage.reasoning_tokens.map(|t| t as i32),
+            cost_usd: usage.cost_usd,
+            end_user_id: None, // TODO: Resolve from end_users table
+            end_user_external_id: request.user.clone(),
+        };
+
+        match ApiKeyUsageRepo::create(pool, new_usage).await {
+            Ok(_) => {
+                debug!(
+                    api_key_id = %auth.api_key.id,
+                    request_id = %response.id,
+                    input_tokens = %usage.input_tokens,
+                    output_tokens = %usage.output_tokens,
+                    "API key usage recorded"
+                );
+            }
+            Err(e) => {
+                error!(
+                    error = %e,
+                    api_key_id = %auth.api_key.id,
+                    "Failed to record API key usage"
+                );
             }
         }
     }

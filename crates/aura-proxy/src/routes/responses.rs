@@ -11,7 +11,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response as AxumResponse, Sse},
     routing::post,
-    Json, Router,
+    Extension, Json, Router,
 };
 use futures_util::StreamExt;
 use serde::Serialize;
@@ -20,6 +20,7 @@ use std::time::{Duration, Instant};
 use tracing::{error, info, instrument, warn};
 use uuid::Uuid;
 
+use crate::routes::AuthContext;
 use crate::AppState;
 
 /// Creates the responses router
@@ -85,18 +86,36 @@ impl ApiError {
 }
 
 /// Create a response (streaming or non-streaming)
-#[instrument(skip(state, request), fields(model = %request.model, stream = %request.stream))]
+#[instrument(skip(state, request, auth), fields(model = %request.model, stream = %request.stream))]
 async fn create_response(
     State(state): State<AppState>,
+    auth: Option<Extension<AuthContext>>,
     Json(request): Json<CreateResponseRequest>,
 ) -> Result<AxumResponse, (StatusCode, Json<ApiError>)> {
     // Generate unique request ID for tracing
     let request_id = format!("aura_{}", Uuid::new_v4());
 
+    // Extract auth context (may not be present in dev mode)
+    let auth_context = auth.map(|Extension(ctx)| ctx);
+
+    // Enforce scope requirement for authenticated requests
+    if let Some(ref auth) = auth_context {
+        if !auth.has_scope("responses:create") && !auth.has_scope("*") {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(ApiError::new(
+                    "insufficient_scope",
+                    "API key does not have required scope: responses:create",
+                )),
+            ));
+        }
+    }
+
     info!(
         request_id = %request_id,
         model = %request.model,
         stream = %request.stream,
+        api_key_id = ?auth_context.as_ref().map(|c| c.api_key.id),
         "Creating response"
     );
 
@@ -137,6 +156,7 @@ async fn create_response(
         let request_for_stream = request.clone();
         let provider_name = provider.name().to_string();
         let model_id = request.model.clone();
+        let auth_for_stream = auth_context.clone();
 
         // Convert to SSE stream, enriching terminal events
         let sse_stream = stream.map(move |result| match result {
@@ -168,11 +188,12 @@ async fn create_response(
                             metadata: response.metadata.clone(),
                         };
 
-                        // Save response
+                        // Save response and record API key usage
                         if let Some(conv_id) = conversation_id {
                             let state_bg = state_for_stream.clone();
                             let response_bg = response.clone();
                             let request_bg = request_for_stream.clone();
+                            let auth_bg = auth_for_stream.clone();
                             tokio::spawn(async move {
                                 state_bg.log_request(log).await;
                                 state_bg
@@ -185,11 +206,28 @@ async fn create_response(
                                         &response_bg.output,
                                     )
                                     .await;
+                                // Record API key usage
+                                if let Some(auth) = auth_bg {
+                                    state_bg
+                                        .record_api_key_usage(&auth, &response_bg, &request_bg)
+                                        .await;
+                                }
                             });
                         } else {
+                            let auth_bg = auth_for_stream.clone();
+                            let response_bg = response.clone();
+                            let request_bg = request_for_stream.clone();
                             tokio::spawn({
                                 let state = state_for_stream.clone();
-                                async move { state.log_request(log).await }
+                                async move {
+                                    state.log_request(log).await;
+                                    // Record API key usage
+                                    if let Some(auth) = auth_bg {
+                                        state
+                                            .record_api_key_usage(&auth, &response_bg, &request_bg)
+                                            .await;
+                                    }
+                                }
                             });
                         }
 
@@ -400,6 +438,7 @@ async fn create_response(
         // CRITICAL: Clone AFTER enrichment to preserve usage/cost data
         let response_for_bg = response.clone();
         let request_for_bg = request.clone();
+        let auth_for_bg = auth_context.clone();
 
         // Spawn background tasks for persistence (non-blocking)
         let state_for_bg = state.clone();
@@ -414,6 +453,13 @@ async fn create_response(
                     .await;
                 state_for_bg
                     .save_messages_from_items(conv_id, &response_for_bg.id, &response_for_bg.output)
+                    .await;
+            }
+
+            // Record API key usage
+            if let Some(auth) = auth_for_bg {
+                state_for_bg
+                    .record_api_key_usage(&auth, &response_for_bg, &request_for_bg)
                     .await;
             }
         });

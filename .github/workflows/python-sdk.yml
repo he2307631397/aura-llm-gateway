@@ -135,8 +135,8 @@ jobs:
 
       - name: Check package
         run: |
-          uv pip install twine
-          uv run twine check dist/*
+          uv pip install --system twine
+          twine check dist/*
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

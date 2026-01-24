@@ -55,6 +55,13 @@ futures-util = "0.3"
 pin-project-lite = "0.2"
 bytes = "1.0"
 
+# Cryptography
+rand = "0.8"
+sha2 = "0.10"
+aes-gcm = "0.10"
+base64 = "0.22"
+hex = "0.4"
+
 # Configuration
 dotenvy = "0.15"
 

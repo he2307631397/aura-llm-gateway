@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod cost;
+pub mod crypto;
 pub mod http;
 pub mod provider;
 pub mod state;
@@ -15,7 +16,7 @@ pub use config::{
 };
 pub use cost::{CostCalculator, ModelPricing, UsageWithCost};
 pub use http::{HttpClient, HttpClientConfig, HttpError};
-pub use provider::{EventStream, OpenAIProvider, Provider, ProviderError};
+pub use provider::{AnthropicProvider, EventStream, OpenAIProvider, Provider, ProviderError};
 pub use state::{AppState, AppStateBuilder};
 
 /// Returns the crate version

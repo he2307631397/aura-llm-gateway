@@ -26,5 +26,6 @@ anyhow.workspace = true
 futures-util.workspace = true
 uuid.workspace = true
 async-trait.workspace = true
+chrono.workspace = true
 
 [dev-dependencies]

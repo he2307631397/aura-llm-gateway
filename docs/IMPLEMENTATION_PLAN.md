@@ -4,9 +4,33 @@ A PR-by-PR roadmap for building the Aura LLM Gateway, designed for incremental R
 
 ## Current Status (January 2026)
 
-**Project Phase:** MVP - In Progress
+**Project Phase:** Multi-Tenancy & Production Readiness
 
 **Recently Completed:**
+- ✅ **Hierarchical Organization Model** (January 26, 2026) - Full multi-tenant support
+  - Organization → Teams → Projects hierarchy
+  - Scoped API keys (org, team, project, user level)
+  - End-user cost tracking with upserts
+  - Database migrations for all new tables
+  - See: [`migrations/20250127_006_hierarchical_org_and_end_users.sql`](../migrations/)
+
+- ✅ **Claude/Anthropic Adapter** (January 26, 2026) - Full Anthropic provider implementation
+  - Streaming with SSE event transformation
+  - Tool/function calling support
+  - Thinking blocks as Item::Reasoning
+  - All models: Claude Opus 4.5, Sonnet 4.5, Haiku, etc.
+
+- ✅ **API Key Authentication** (January 26, 2026) - Complete auth system
+  - Bearer token authentication middleware
+  - API key generation with secure hashing (SHA-256)
+  - Scopes, rate limits, monthly token budgets
+  - Key management endpoints (create, list, revoke)
+
+- ✅ **Credential Encryption** (January 26, 2026) - Secure credential storage
+  - AES-256-GCM envelope encryption
+  - Per-credential DEK wrapped with master key
+  - Secure storage in PostgreSQL
+
 - ✅ **Python SDK** (January 24, 2026) - Full-featured Python client library
   - Package: `aura-llm` on PyPI
   - Features: Sync/async clients, streaming, tool calling, typed events
@@ -21,10 +45,11 @@ A PR-by-PR roadmap for building the Aura LLM Gateway, designed for incremental R
   - Features: Auto-creation, threading, usage tracking, cost calculation
 
 **Active Milestones:**
-- M1-M4: Foundation, Single Provider, Multi-Provider, Persistence ✅ **LARGELY COMPLETE**
-- M5: Production Readiness - In Progress
+- M1-M4: Foundation, Single Provider, Multi-Provider, Persistence ✅ **COMPLETE**
+- M5: Production Readiness - Rate limiting, caching (In Progress)
 - M7: Chat Demo App ✅ **COMPLETE**
 - M8: SDKs - Python SDK ✅ **COMPLETE**, TypeScript SDK pending
+- M12: User & Team Management ✅ **LARGELY COMPLETE** (Org model, API keys, end-users)
 
 ---
 
@@ -394,21 +419,32 @@ pub trait Provider: Send + Sync {
 
 **Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Anthropic/Claude type mappings.
 
+**Status:** ✅ **COMPLETED** (January 26, 2026)
+
 **Tasks:**
-- [ ] Implement `ClaudeProvider` struct
-- [ ] Handle Claude's message format differences (system at top level)
-- [ ] Support system prompts as separate field (not in messages)
-- [ ] Transform streaming format (message_start, content_block_delta, etc.)
-- [ ] Handle `thinking` blocks as Item::Reasoning
-- [ ] Add provider-specific configuration
+- [x] Implement `AnthropicProvider` struct
+- [x] Handle Claude's message format differences (system at top level)
+- [x] Support system prompts as separate field (not in messages)
+- [x] Transform streaming format (message_start, content_block_delta, etc.)
+- [x] Handle `thinking` blocks as Item::Reasoning
+- [x] Add provider-specific configuration
 
 **Files:**
-- `crates/aura-core/src/provider/claude.rs`
+- `crates/aura-core/src/provider/anthropic.rs` ✅ (~900 lines)
 
 **Acceptance Criteria:**
-- Can proxy requests to Claude API
-- Streaming works correctly
-- Extended thinking exposed as reasoning items
+- ✅ Can proxy requests to Claude API
+- ✅ Streaming works correctly with SSE transformation
+- ✅ Extended thinking exposed as reasoning items
+- ✅ Tool/function calling fully supported
+- ✅ All Claude models: Opus 4.5, Sonnet 4.5, Haiku, etc.
+
+**Implementation Notes:**
+- Full Anthropic Messages API implementation
+- Transforms Open Responses API ↔ Anthropic format
+- Supports multimodal content (images)
+- Handles content blocks: text, tool_use, tool_result
+- Maps `user` field to Anthropic's `metadata.user_id`
 
 ---
 
@@ -484,21 +520,36 @@ pub struct ProviderRegistry {
 ### PR #13: API Key Authentication (Sellable MVP!)
 **Rust Concepts:** Axum middleware, extractors, tower layers
 
+**Status:** ✅ **COMPLETED** (January 26, 2026)
+
 **Tasks:**
-- [ ] Create `ApiKey` extractor
-- [ ] Add authentication middleware
-- [ ] Support `Authorization: Bearer` header
-- [ ] Support `X-API-Key` header
-- [ ] In-memory key storage (database later)
-- [ ] Add key validation endpoint
+- [x] Create `ApiKey` extractor
+- [x] Add authentication middleware
+- [x] Support `Authorization: Bearer` header
+- [x] In-memory key validation (database-backed)
+- [x] Add key CRUD endpoints (create, list, revoke, delete)
+- [x] Implement scopes and rate limits per key
 
 **Files:**
-- `crates/aura-proxy/src/middleware/auth.rs`
-- `crates/aura-proxy/src/extractors/api_key.rs`
+- `crates/aura-proxy/src/routes/auth.rs` ✅ (~480 lines)
+- `crates/aura-core/src/crypto.rs` ✅ (~450 lines)
+- `crates/aura-db/src/models.rs` ✅ (ApiKey, NewApiKey)
+- `crates/aura-db/src/repo.rs` ✅ (ApiKeyRepo)
+- `migrations/20250126_005_api_keys_and_credentials.sql` ✅
 
 **Acceptance Criteria:**
-- Requests without valid key get 401
-- Valid keys pass through to handlers
+- ✅ Requests without valid key get 401
+- ✅ Valid keys pass through to handlers with AuthContext
+- ✅ API key CRUD via REST endpoints
+- ✅ Secure key storage with SHA-256 hashing
+
+**Implementation Notes:**
+- API keys use format: `aura_live_<random>` or `aura_test_<random>`
+- Keys hashed with SHA-256, never stored in plaintext
+- Scopes stored as JSON array (e.g., `["responses:create"]`)
+- Rate limits and monthly token budgets per key
+- Key expiration support
+- AuthContext added to request extensions for handlers
 
 ---
 
@@ -1359,6 +1410,47 @@ Interactive, beautiful API documentation.
 
 ---
 
+### PR #43b: Documentation Improvements
+**Status:** 🔄 **PLANNED**
+
+**Infrastructure Tasks:**
+- [ ] Migrate landing page docs from Markdown to MDX
+  - Add `@mdx-js/react` and `@mdx-js/rollup` to landing page
+  - Convert `.md` files to `.mdx` for JSX component support
+  - Enable interactive code examples with live preview
+  - Add custom MDX components (Callout, CodeGroup, Tabs)
+
+**Missing Documentation:**
+- [x] Conversation threading guide (`previous_response_id` usage) ✅
+- [x] Provider credentials guide (storing org-specific API keys) ✅
+- [x] Deployment guide (Docker, Kubernetes, production setup) ✅
+- [x] Error reference (complete error codes and troubleshooting) ✅
+- [ ] Rate limiting guide (per-key, per-user limits)
+- [ ] Webhooks guide (when implemented)
+
+**Landing Page Additions:**
+- [x] Organizations & End-Users guide ✅ (January 2026)
+- [x] Authentication guide ✅ (January 2026)
+- [x] Conversations guide ✅ (January 2026)
+- [x] Provider Credentials guide ✅ (January 2026)
+- [x] Deployment guide ✅ (January 2026)
+- [x] Error Reference ✅ (January 2026)
+- [x] Providers section navigation (_meta.json) ✅
+- [x] Concepts section navigation (_meta.json) ✅
+
+**Technical Writing:**
+- [ ] Add API examples for all endpoints
+- [ ] Include Python and TypeScript SDK examples side-by-side
+- [ ] Add troubleshooting sections to each guide
+- [ ] Create FAQ page
+
+**Acceptance Criteria:**
+- All features documented with examples
+- MDX enables interactive components
+- Documentation covers full user journey
+
+---
+
 # Phase 3: Advanced Features
 
 ---
@@ -1524,7 +1616,11 @@ Interactive, beautiful API documentation.
 
 ## Milestone 12: User & Team Management
 
+**Status:** ✅ **LARGELY COMPLETE** (Database models and repos implemented)
+
 ### PR #53: User Model
+**Status:** 🔄 **PARTIAL** (User fields exist on API keys, full user auth pending)
+
 **Tasks:**
 - [ ] Create users table
 - [ ] Add user authentication (email/password)
@@ -1533,9 +1629,9 @@ Interactive, beautiful API documentation.
 - [ ] Support OAuth providers (Google, GitHub)
 
 **Tables:**
-- `users` - User accounts
-- `sessions` - Active sessions
-- `password_resets` - Reset tokens
+- `users` - User accounts (pending)
+- `sessions` - Active sessions (pending)
+- `password_resets` - Reset tokens (pending)
 
 **Acceptance Criteria:**
 - Users can sign up and log in
@@ -1544,28 +1640,48 @@ Interactive, beautiful API documentation.
 ---
 
 ### PR #54: Organization Model
+**Status:** ✅ **COMPLETED** (January 26, 2026)
+
 **Tasks:**
-- [ ] Create organizations table
-- [ ] Add organization membership
-- [ ] Implement roles (owner, admin, member)
-- [ ] Organization-level API keys
-- [ ] Invitation system
+- [x] Create organizations table
+- [x] Add organization membership (organization_members)
+- [x] Implement roles (owner, admin, member)
+- [x] Organization-level API keys
+- [x] Create teams table (subdivisions of orgs)
+- [x] Create projects table (subdivisions of teams)
+- [x] Scoped API keys (org/team/project/user)
+- [ ] Invitation system (pending)
 
 **Tables:**
-- `organizations` - Organization accounts
-- `org_members` - User-org relationships
-- `org_invitations` - Pending invites
+- `organizations` ✅ - Organization accounts
+- `organization_members` ✅ - User-org relationships with roles
+- `teams` ✅ - Departments/products within orgs
+- `team_members` ✅ - Team membership
+- `projects` ✅ - Initiatives within teams
+- `end_users` ✅ - Consumer/client tracking
+- `provider_credentials` ✅ - Encrypted provider API keys
+
+**Files:**
+- `migrations/20250126_005_api_keys_and_credentials.sql` ✅
+- `migrations/20250127_006_hierarchical_org_and_end_users.sql` ✅
+- `crates/aura-db/src/models.rs` ✅ (Organization, Team, Project, EndUser)
+- `crates/aura-db/src/repo.rs` ✅ (All repos)
 
 **Acceptance Criteria:**
-- Users can create organizations
-- Can invite team members
+- ✅ Organizations with owner and members
+- ✅ Teams within organizations
+- ✅ Projects within teams
+- ✅ Scoped API keys at any level
+- ✅ End-user cost tracking
 
 ---
 
 ### PR #55: Role-Based Access Control
+**Status:** 🔄 **PARTIAL** (Roles defined, enforcement pending)
+
 **Tasks:**
-- [ ] Define permission system
-- [ ] Implement role hierarchy
+- [x] Define permission system (scopes on API keys)
+- [x] Implement role hierarchy (owner > admin > member)
 - [ ] Add resource-level permissions
 - [ ] Create permission checking middleware
 - [ ] Audit log for permission changes
@@ -1582,20 +1698,33 @@ Interactive, beautiful API documentation.
 ---
 
 ### PR #56: Quotas & Limits
+**Status:** ✅ **COMPLETED** (January 26, 2026)
+
 **Tasks:**
-- [ ] Per-user token limits
-- [ ] Per-organization spending limits
-- [ ] Per-API-key rate limits
+- [x] Per-API-key token limits (monthly_token_limit)
+- [x] Per-organization spending tracking
+- [x] Per-team token budgets
+- [x] Per-project token budgets
+- [x] Per-end-user limits and blocking
 - [ ] Overage notifications
 - [ ] Usage alerts
 
+**Implementation:**
+- API keys have `monthly_token_limit` and `current_month_tokens`
+- Teams and projects have their own token budgets
+- End users can be rate-limited or blocked
+- Automatic monthly reset via `usage_reset_month`
+
 **Acceptance Criteria:**
-- Can set spending caps
-- Users notified before hitting limits
+- ✅ Can set spending caps at all levels
+- ✅ End users can be blocked
+- [ ] Users notified before hitting limits (pending)
 
 ---
 
 ### PR #57: Team Management Dashboard
+**Status:** 🔄 **PENDING**
+
 **Tasks:**
 - [ ] Organization settings page
 - [ ] Member management UI

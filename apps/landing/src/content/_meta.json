@@ -1,5 +1,13 @@
 {
   "index": "Introduction",
+  "quickstart": "Quick Start",
   "api": "API Reference",
-  "architecture": "Architecture"
+  "organizations": "Organizations & End-Users",
+  "credentials": "Provider Credentials",
+  "deployment": "Deployment",
+  "architecture": "Architecture",
+  "configuration": "Configuration",
+  "providers": "Providers",
+  "concepts": "Concepts",
+  "roadmap": "Roadmap"
 }

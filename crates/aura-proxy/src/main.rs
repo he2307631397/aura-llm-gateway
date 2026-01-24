@@ -6,9 +6,9 @@
 mod routes;
 
 use anyhow::Context;
-use aura_core::{CostCalculator, OpenAIProvider, Provider};
-use aura_db::{DbPool, NewRequestLog, PoolConfig, RequestLogRepo};
-use axum::Router;
+use aura_core::{AnthropicProvider, CostCalculator, OpenAIProvider, Provider};
+use aura_db::{ApiKeyUsageRepo, DbPool, NewApiKeyUsage, NewRequestLog, PoolConfig, RequestLogRepo};
+use axum::{middleware, Router};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::signal;
@@ -53,7 +53,21 @@ impl AppState {
             warn!("OpenAI API key not configured - OpenAI provider disabled");
         }
 
-        // TODO: Add Anthropic provider when implemented
+        // Register Anthropic provider if API key is configured
+        if let Some(api_key) = &config.providers.anthropic_api_key {
+            info!("Registering Anthropic provider");
+            let anthropic = Arc::new(AnthropicProvider::new(api_key)) as Arc<dyn Provider>;
+
+            // Map all supported models to this provider
+            for model in anthropic.models() {
+                model_map.insert(model.to_string(), "anthropic".to_string());
+            }
+
+            providers.insert("anthropic".to_string(), anthropic);
+        } else {
+            warn!("Anthropic API key not configured - Anthropic provider disabled");
+        }
+
         // TODO: Add Google provider when implemented
 
         if db_pool.is_some() {
@@ -401,6 +415,65 @@ impl AppState {
             }
         }
     }
+
+    /// Record API key usage to the database
+    pub async fn record_api_key_usage(
+        &self,
+        auth: &routes::AuthContext,
+        response: &aura_types::Response,
+        request: &aura_types::CreateResponseRequest,
+    ) {
+        let Some(pool) = &self.db_pool else {
+            return;
+        };
+
+        let usage = match &response.usage {
+            Some(u) => u,
+            None => {
+                debug!("No usage data in response, skipping usage recording");
+                return;
+            }
+        };
+
+        let provider_name = self
+            .model_map
+            .get(&response.model)
+            .map(|s| s.as_str())
+            .unwrap_or("unknown");
+
+        let new_usage = NewApiKeyUsage {
+            api_key_id: auth.api_key.id,
+            request_id: response.id.clone(),
+            model_id: response.model.clone(),
+            provider_name: provider_name.to_string(),
+            input_tokens: usage.input_tokens as i32,
+            output_tokens: usage.output_tokens as i32,
+            cached_tokens: usage.cached_tokens.map(|t| t as i32),
+            reasoning_tokens: usage.reasoning_tokens.map(|t| t as i32),
+            cost_usd: usage.cost_usd,
+            end_user_id: None, // TODO: Resolve from end_users table
+            end_user_external_id: request.user.clone(),
+        };
+
+        match ApiKeyUsageRepo::create(pool, new_usage).await {
+            Ok(_) => {
+                debug!(
+                    api_key_id = %auth.api_key.id,
+                    request_id = %response.id,
+                    input_tokens = %usage.input_tokens,
+                    output_tokens = %usage.output_tokens,
+                    "API key usage recorded"
+                );
+            }
+            Err(e) => {
+                error!(
+                    error = %e,
+                    api_key_id = %auth.api_key.id,
+                    "Failed to record API key usage"
+                );
+            }
+        }
+    }
 }
 
 /// Extract first user message from request for conversation title
@@ -476,6 +549,11 @@ async fn main() -> anyhow::Result<()> {
     // Build router with middleware
     let app = Router::new()
         .merge(routes::app_router())
+        // Authentication middleware
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            routes::auth_middleware,
+        ))
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))

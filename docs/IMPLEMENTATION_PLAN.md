@@ -1410,6 +1410,43 @@ Interactive, beautiful API documentation.
 
 ---
 
+### PR #43b: Documentation Improvements
+**Status:** 🔄 **PLANNED**
+
+**Infrastructure Tasks:**
+- [ ] Migrate landing page docs from Markdown to MDX
+  - Add `@mdx-js/react` and `@mdx-js/rollup` to landing page
+  - Convert `.md` files to `.mdx` for JSX component support
+  - Enable interactive code examples with live preview
+  - Add custom MDX components (Callout, CodeGroup, Tabs)
+
+**Missing Documentation:**
+- [ ] Conversation threading guide (`previous_response_id` usage)
+- [ ] Provider credentials guide (storing org-specific API keys)
+- [ ] Deployment guide (Docker, Kubernetes, production setup)
+- [ ] Error reference (complete error codes and troubleshooting)
+- [ ] Rate limiting guide (per-key, per-user limits)
+- [ ] Webhooks guide (when implemented)
+
+**Landing Page Additions:**
+- [x] Organizations & End-Users guide ✅ (January 2026)
+- [x] Authentication guide ✅ (January 2026)
+- [ ] Providers section navigation (_meta.json)
+- [ ] Concepts section navigation (_meta.json)
+
+**Technical Writing:**
+- [ ] Add API examples for all endpoints
+- [ ] Include Python and TypeScript SDK examples side-by-side
+- [ ] Add troubleshooting sections to each guide
+- [ ] Create FAQ page
+
+**Acceptance Criteria:**
+- All features documented with examples
+- MDX enables interactive components
+- Documentation covers full user journey
+
+---
+
 # Phase 3: Advanced Features
 
 ---

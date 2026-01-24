@@ -261,7 +261,7 @@ The `docker-compose.yml` includes:
 
 ## Project Status
 
-**Current Phase**: Persistence & Observability (Milestone 4) 🔄
+**Current Phase**: SDKs & Production Readiness (Milestone 5 & 8) 🔄
 
 ### Completed
 - [x] **PR #1: Project Scaffolding** - Cargo workspace with 4 crates
@@ -274,11 +274,14 @@ The `docker-compose.yml` includes:
 - [x] **PR #14: PostgreSQL Setup** - Database schema, models, AppState integration
 - [x] **PR #15: Request Logging** - Async logging to database
 - [x] **PR #16: Cost Tracking** - Per-request cost calculation with agentic metadata
+- [x] **PR #21: Conversation Threading** - Stateful conversations with previous_response_id
 - [x] **PR #28: Documentation** - API docs, architecture diagrams (Mermaid)
+- [x] **PR #35-36: Python SDK** - Full-featured client with sync/async, streaming, typed events
 
 ### In Progress
 - 🔄 **PR #17: Metrics** - Prometheus metrics endpoint
 - 🔄 **PR #9: Claude Adapter** - Anthropic provider implementation
+- 🔄 **PR #37-38: TypeScript SDK** - Coming soon
 
 ### Bonus (Implemented Early)
 - [x] **Chat UI** - React chat app with tool execution cards

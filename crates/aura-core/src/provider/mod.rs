@@ -5,10 +5,12 @@
 
 mod anthropic;
 mod error;
+mod gemini;
 mod openai;
 
 pub use anthropic::AnthropicProvider;
 pub use error::ProviderError;
+pub use gemini::GeminiProvider;
 pub use openai::OpenAIProvider;
 
 use async_trait::async_trait;

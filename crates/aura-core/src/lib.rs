@@ -16,7 +16,9 @@ pub use config::{
 };
 pub use cost::{CostCalculator, ModelPricing, UsageWithCost};
 pub use http::{HttpClient, HttpClientConfig, HttpError};
-pub use provider::{AnthropicProvider, EventStream, OpenAIProvider, Provider, ProviderError};
+pub use provider::{
+    AnthropicProvider, EventStream, GeminiProvider, OpenAIProvider, Provider, ProviderError,
+};
 pub use state::{AppState, AppStateBuilder};
 
 /// Returns the crate version

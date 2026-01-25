@@ -79,17 +79,27 @@ Errors follow the Open Responses API format:
 
 ## Supported Models
 
-### OpenAI
-- `gpt-4o`
-- `gpt-4o-mini`
-- `gpt-4-turbo`
-- `gpt-3.5-turbo`
+### OpenAI ✅
+- `gpt-4o`, `gpt-4o-mini`
+- `gpt-4-turbo`, `gpt-3.5-turbo`
 - `o1`, `o1-mini`, `o3-mini`
 
-### Anthropic (coming soon)
-- `claude-3-5-sonnet-20241022`
-- `claude-3-5-haiku-20241022`
+### Anthropic ✅
+- `claude-opus-4-5-20251101`, `claude-sonnet-4-5-20250514`
+- `claude-3-5-sonnet-20241022`, `claude-3-5-haiku-20241022`
+- `claude-3-opus`, `claude-3-sonnet`, `claude-3-haiku`
 
-### Google (coming soon)
-- `gemini-2.0-flash`
-- `gemini-1.5-pro`
+### Google Gemini ✅
+- `gemini-3-pro`, `gemini-3-flash`
+- `gemini-2.5-pro`, `gemini-2.5-flash`
+- `gemini-2.0-flash`, `gemini-2.0-flash-lite`
+- `gemini-1.5-pro`, `gemini-1.5-flash`
+
+### Planned Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| **AWS Bedrock** | Claude, Llama, Titan via Bedrock | 📋 Planned |
+| **Mistral** | mistral-large, codestral | 📋 Planned |
+| **Ollama** | Local models (llama3, mistral, etc.) | 📋 Planned |
+| **HuggingFace** | Inference API & Endpoints | 📋 Planned |

@@ -88,10 +88,19 @@ Errors follow the Open Responses API format:
 
 ## Supported Models
 
-| Provider | Models |
-|----------|--------|
-| **OpenAI** | gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1, o1-mini, o3-mini |
-| **Anthropic** | claude-3-5-sonnet-20241022, claude-3-5-haiku-20241022 (coming soon) |
-| **Google** | gemini-2.0-flash, gemini-1.5-pro (coming soon) |
+| Provider | Models | Status |
+|----------|--------|--------|
+| **OpenAI** | gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo, o1, o1-mini, o3-mini | ✅ Live |
+| **Anthropic** | claude-opus-4-5-20251101, claude-sonnet-4-5-20250514, claude-3-5-haiku-20241022 | ✅ Live |
+| **Google** | gemini-3-pro, gemini-3-flash, gemini-2.5-pro, gemini-2.0-flash, gemini-1.5-pro | ✅ Live |
+
+### Planned Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| **AWS Bedrock** | anthropic.claude-3-*, meta.llama3-*, amazon.titan-* | 📋 Planned |
+| **Mistral** | mistral-large, mistral-medium, codestral | 📋 Planned |
+| **Ollama** | llama3.2, mistral, codellama, qwen2.5 (local models) | 📋 Planned |
+| **HuggingFace** | Any model on HF Hub via Inference API | 📋 Planned |
 
 See the [Providers](/docs/providers/openai) section for detailed model capabilities and pricing.

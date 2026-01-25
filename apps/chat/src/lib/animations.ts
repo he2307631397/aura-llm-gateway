@@ -90,7 +90,7 @@ export function animateExpand(
       opacity: [0, 1],
       duration: 300,
       easing: 'easeOutCubic',
-      onComplete: onComplete,
+      ...(onComplete && { onComplete }),
     })
   } else {
     animate(element, {
@@ -120,7 +120,7 @@ export function animateDropdown(
       scale: [0.95, 1],
       duration: 200,
       easing: 'easeOutCubic',
-      onComplete: onComplete,
+      ...(onComplete && { onComplete }),
     })
   } else {
     animate(element, {
@@ -147,6 +147,6 @@ export function animateOverlay(
     opacity: isFadingIn ? [0, 1] : [1, 0],
     duration: 200,
     easing: isFadingIn ? 'easeOutCubic' : 'easeInCubic',
-    onComplete: onComplete,
+    ...(onComplete && { onComplete }),
   })
 }

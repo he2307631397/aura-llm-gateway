@@ -276,6 +276,7 @@ The `docker-compose.yml` includes:
 - [x] **PR #6: OpenAI Adapter** - Provider trait + OpenAI implementation
 - [x] **PR #7: Streaming Support** - SSE streaming with semantic events
 - [x] **PR #9: Claude Adapter** - Full Anthropic provider with streaming and tool support
+- [x] **PR #10: Gemini Adapter** - Full Google Gemini provider with streaming and function calling
 - [x] **PR #13: API Key Authentication** - Bearer token auth with scopes and rate limits
 - [x] **PR #14: PostgreSQL Setup** - Database schema, models, AppState integration
 - [x] **PR #15: Request Logging** - Async logging to database
@@ -291,6 +292,12 @@ The `docker-compose.yml` includes:
 - 🔄 **PR #17: Metrics** - Prometheus metrics endpoint
 - 🔄 **PR #37-38: TypeScript SDK** - Coming soon
 - 🔄 **Admin Dashboard** - React admin UI for key and org management
+
+### Planned Providers
+- 📋 **AWS Bedrock** - Claude, Llama, Titan models via Bedrock
+- 📋 **Mistral** - Mistral Large, Medium, Codestral
+- 📋 **Ollama** - Local models (Llama, Mistral, etc.)
+- 📋 **HuggingFace** - Inference API and Endpoints
 
 ### Bonus (Implemented Early)
 - [x] **Chat UI** - React chat app with tool execution cards

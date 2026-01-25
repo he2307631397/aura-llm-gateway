@@ -20,6 +20,14 @@ A PR-by-PR roadmap for building the Aura LLM Gateway, designed for incremental R
   - Thinking blocks as Item::Reasoning
   - All models: Claude Opus 4.5, Sonnet 4.5, Haiku, etc.
 
+- ✅ **Google Gemini Adapter** (January 25, 2026) - Full Google Gemini provider implementation
+  - Non-streaming and streaming via generateContent API
+  - Role mapping (assistant → "model", system → system_instruction)
+  - Function calling with functionDeclarations format
+  - Multi-modal content (images, audio support)
+  - Safety and content filter handling
+  - All models: Gemini 1.5, 2.0, 2.5, 3.x families
+
 - ✅ **API Key Authentication** (January 26, 2026) - Complete auth system
   - Bearer token authentication middleware
   - API key generation with secure hashing (SHA-256)
@@ -453,21 +461,33 @@ pub trait Provider: Send + Sync {
 
 **Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Google/Gemini type mappings.
 
+**Status:** ✅ **COMPLETED** (January 25, 2026)
+
 **Tasks:**
-- [ ] Implement `GeminiProvider` struct
-- [ ] Handle Gemini's `contents` array format
-- [ ] Map roles correctly (user/model instead of user/assistant)
-- [ ] Handle system_instruction as separate field
-- [ ] Support Gemini-specific parameters
-- [ ] Handle safety settings and content filtering
+- [x] Implement `GeminiProvider` struct
+- [x] Handle Gemini's `contents` array format
+- [x] Map roles correctly (user/model instead of user/assistant)
+- [x] Handle system_instruction as separate field
+- [x] Support Gemini-specific parameters
+- [x] Handle safety settings and content filtering
 
 **Files:**
-- `crates/aura-core/src/provider/gemini.rs`
+- `crates/aura-core/src/provider/gemini.rs` ✅ (~1100 lines)
 
 **Acceptance Criteria:**
-- Can proxy requests to Gemini API
-- Safety filter responses handled gracefully
-- Role mapping works correctly
+- ✅ Can proxy requests to Gemini API
+- ✅ Safety filter responses handled gracefully (SAFETY, RECITATION → ContentFilter)
+- ✅ Role mapping works correctly (assistant → "model")
+
+**Implementation Notes:**
+- Full Gemini GenerateContent API implementation
+- Transforms Open Responses API ↔ Gemini format
+- Supports multimodal content (images via inlineData, audio)
+- Streaming via streamGenerateContent with SSE
+- Function calling with functionDeclarations format
+- System prompt via separate system_instruction field
+- All Gemini models: 1.5-pro, 1.5-flash, 2.0-flash, 2.5-pro, 3-pro, etc.
+- 9 unit tests for request transformation and error handling
 
 ---
 
@@ -1740,70 +1760,129 @@ Interactive, beautiful API documentation.
 
 ## Milestone 13: Additional Providers
 
-### PR #58: HuggingFace Adapter
+### PR #58: AWS Bedrock Adapter
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed AWS Bedrock type mappings.
+
 **Tasks:**
-- [ ] Implement `HuggingFaceProvider`
-- [ ] Support Inference API
-- [ ] Support Inference Endpoints
-- [ ] Handle model-specific parameters
-- [ ] Add popular model presets
+- [ ] Implement `BedrockProvider` struct
+- [ ] Handle AWS SigV4 authentication
+- [ ] Support Bedrock's InvokeModel/InvokeModelWithResponseStream APIs
+- [ ] Map to Bedrock's Claude models (anthropic.claude-3-*)
+- [ ] Map to Bedrock's Llama models (meta.llama3-*)
+- [ ] Map to Bedrock's Titan models (amazon.titan-*)
+- [ ] Handle Bedrock-specific error codes
+- [ ] Support cross-region inference
 
 **Models:**
-- Llama, Mistral, Falcon, etc.
+- `anthropic.claude-3-5-sonnet`, `anthropic.claude-3-haiku`
+- `meta.llama3-1-405b-instruct`, `meta.llama3-1-70b-instruct`
+- `amazon.titan-text-express`, `amazon.titan-text-premier`
+- `cohere.command-r-plus`, `mistral.mistral-large`
 
 **Acceptance Criteria:**
-- Can proxy to HuggingFace models
-- Streaming works correctly
+- Can proxy to AWS Bedrock with IAM/STS credentials
+- Streaming works with InvokeModelWithResponseStream
+- Multiple model families supported
 
 ---
 
 ### PR #59: Mistral Adapter
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Mistral type mappings.
+
 **Tasks:**
-- [ ] Implement `MistralProvider`
-- [ ] Handle Mistral API format
-- [ ] Support function calling
-- [ ] Add Mistral-specific parameters
+- [ ] Implement `MistralProvider` struct
+- [ ] Handle Mistral Chat Completion API format
+- [ ] Support function calling (similar to OpenAI)
+- [ ] Add Mistral-specific parameters (safe_prompt)
+- [ ] Handle JSON mode and structured outputs
+- [ ] Support Codestral for code generation
+
+**Models:**
+- `mistral-large-latest`, `mistral-medium-latest`, `mistral-small-latest`
+- `open-mistral-7b`, `open-mixtral-8x7b`, `open-mixtral-8x22b`
+- `codestral-latest`, `codestral-mamba-latest`
 
 **Acceptance Criteria:**
 - Full Mistral API support
 - Function calling works
+- Code generation with Codestral
 
 ---
 
-### PR #60: Cohere Adapter
+### PR #60: Ollama Adapter (Local Models)
+**Reference:** See `docs/PROVIDER_MAPPING.md` for detailed Ollama type mappings.
+
 **Tasks:**
-- [ ] Implement `CohereProvider`
-- [ ] Handle Command models
-- [ ] Support Cohere embeddings
-- [ ] Add RAG capabilities
+- [ ] Implement `OllamaProvider` struct
+- [ ] Support Ollama OpenAI-compatible API (/v1/chat/completions)
+- [ ] Auto-discover available local models via /api/tags
+- [ ] Handle Ollama-specific parameters (num_ctx, num_gpu, etc.)
+- [ ] Support model pulling via /api/pull
+- [ ] Graceful fallback when Ollama not running
+
+**Models:**
+- `llama3.2`, `llama3.1`, `llama3`
+- `mistral`, `mixtral`
+- `codellama`, `deepseek-coder`
+- `qwen2.5`, `phi3`
+- Any model available in Ollama library
+
+**Acceptance Criteria:**
+- Can proxy to local Ollama instance
+- Zero-config for local development (auto-detect http://localhost:11434)
+- Model discovery works
+
+---
+
+### PR #61: HuggingFace Adapter
+**Tasks:**
+- [ ] Implement `HuggingFaceProvider` struct
+- [ ] Support Inference API (serverless)
+- [ ] Support Inference Endpoints (dedicated)
+- [ ] Handle model-specific parameters
+- [ ] Add popular model presets
+- [ ] Support Text Generation Inference (TGI) format
+
+**Models:**
+- `meta-llama/Meta-Llama-3-70B-Instruct`
+- `mistralai/Mistral-7B-Instruct-v0.2`
+- `google/gemma-2-9b-it`
+- Any model on HuggingFace Hub
+
+**Acceptance Criteria:**
+- Can proxy to HuggingFace models
+- Streaming works correctly
+- Both Inference API and Endpoints supported
+
+---
+
+### PR #62: Cohere Adapter
+**Tasks:**
+- [ ] Implement `CohereProvider` struct
+- [ ] Handle Command R/R+ models
+- [ ] Support Cohere Chat API format
+- [ ] Handle connectors for RAG
+- [ ] Support embeddings endpoint (future)
+
+**Models:**
+- `command-r-plus`, `command-r`, `command`
+- `command-light`, `command-nightly`
 
 **Acceptance Criteria:**
 - Can proxy to Cohere
-- Embeddings API works
+- RAG connectors work
+- Streaming with Command R
 
 ---
 
-### PR #61: Local Model Support (Ollama)
-**Tasks:**
-- [ ] Implement `OllamaProvider`
-- [ ] Auto-discover local models
-- [ ] Support custom model paths
-- [ ] Handle local-specific errors
-- [ ] Add GPU detection
-
-**Acceptance Criteria:**
-- Can proxy to local Ollama
-- Zero-config for local development
-
----
-
-### PR #62: Provider Management Dashboard
+### PR #63: Provider Management Dashboard
 **Tasks:**
 - [ ] Provider configuration UI
 - [ ] API key management per provider
 - [ ] Provider health status
 - [ ] Enable/disable providers
 - [ ] Custom endpoint configuration
+- [ ] Model alias configuration
 
 **Acceptance Criteria:**
 - Easy provider setup from UI

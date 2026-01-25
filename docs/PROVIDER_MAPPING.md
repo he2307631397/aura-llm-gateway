@@ -8,16 +8,16 @@ The Aura LLM Gateway translates between provider-specific formats and the Open R
 
 ## Type Mapping Summary
 
-| Open Responses Type | OpenAI | Anthropic (Claude) | Google (Gemini) |
-|---------------------|--------|-------------------|-----------------|
-| `Role::User` | `user` | `user` | `user` |
-| `Role::Assistant` | `assistant` | `assistant` | `model` |
-| `Role::System` | `system` | System in first message | `system_instruction` |
-| `Role::Tool` | `tool` | `tool_result` | `function_response` |
-| `Item::Message` | `message` | `text` content block | `text` part |
-| `Item::FunctionCall` | `function_call` / `tool_calls` | `tool_use` | `function_call` |
-| `Item::FunctionCallOutput` | `function` / `tool` message | `tool_result` | `function_response` |
-| `Item::Reasoning` | N/A (internal) | `thinking` block | N/A |
+| Open Responses Type | OpenAI | Anthropic | Google (Gemini) | Mistral | Ollama | AWS Bedrock |
+|---------------------|--------|-----------|-----------------|---------|--------|-------------|
+| `Role::User` | `user` | `user` | `user` | `user` | `user` | `user` |
+| `Role::Assistant` | `assistant` | `assistant` | `model` | `assistant` | `assistant` | `assistant` |
+| `Role::System` | `system` | Top-level field | `system_instruction` | `system` | `system` | Model-specific |
+| `Role::Tool` | `tool` | `tool_result` | `function_response` | `tool` | `tool` | `tool` |
+| `Item::Message` | `message` | `text` block | `text` part | `message` | `message` | `text` |
+| `Item::FunctionCall` | `tool_calls` | `tool_use` | `function_call` | `tool_calls` | `tool_calls` | `tool_use` |
+| `Item::FunctionCallOutput` | `tool` msg | `tool_result` | `function_response` | `tool` msg | `tool` msg | `tool_result` |
+| `Item::Reasoning` | N/A | `thinking` | N/A | N/A | N/A | N/A |
 
 ---
 
@@ -281,32 +281,365 @@ finishReason present          → response.completed / response.incomplete
 
 ---
 
+## Mistral Mapping
+
+### Request Transformation
+
+```
+CreateResponseRequest → Mistral Chat Completion Request
+───────────────────────────────────────────────────────
+
+Open Responses                    Mistral
+──────────────                    ───────
+model                          → model
+input                          → messages (transformed)
+instructions                   → system message (prepended)
+max_output_tokens              → max_tokens
+temperature                    → temperature
+top_p                          → top_p
+stream                         → stream
+tools                          → tools (OpenAI-compatible format)
+tool_choice                    → tool_choice
+```
+
+### Message Format
+
+Mistral uses OpenAI-compatible message format:
+
+```rust
+// Open Responses → Mistral
+InputItem::Message { role: User, content: "Hello" }
+    → { "role": "user", "content": "Hello" }
+
+// System message handling
+instructions: "Be helpful"
+    → { "role": "system", "content": "Be helpful" }
+
+// Tool response
+InputItem::FunctionCallOutput { call_id, output }
+    → { "role": "tool", "tool_call_id": call_id, "content": output }
+```
+
+### Response Transformation
+
+```
+Mistral Chat Completion Response → Response
+───────────────────────────────────────────
+
+Mistral                          Open Responses
+───────                          ──────────────
+id                            → id (prefixed with "resp_mis_")
+model                         → model
+choices[0].message.content    → output[0] as Item::Message
+choices[0].message.tool_calls → output[n] as Item::FunctionCall
+choices[0].finish_reason      → status
+  - "stop"                    → ResponseStatus::Completed
+  - "length"                  → ResponseStatus::Incomplete (MaxTokens)
+  - "tool_calls"              → ResponseStatus::Completed
+usage.prompt_tokens           → usage.input_tokens
+usage.completion_tokens       → usage.output_tokens
+```
+
+### Streaming Events
+
+```
+Mistral SSE                      Open Responses SSE
+───────────                      ──────────────────
+(initial)                     → response.created, response.in_progress
+delta.content                 → response.output_text.delta
+delta.tool_calls              → response.function_call_arguments.delta
+finish_reason                 → response.completed
+[DONE]                        → (end of stream)
+```
+
+---
+
+## Ollama Mapping (Local Models)
+
+### Request Transformation
+
+```
+CreateResponseRequest → Ollama Chat Request
+───────────────────────────────────────────
+
+Open Responses                    Ollama
+──────────────                    ──────
+model                          → model
+input                          → messages (transformed)
+instructions                   → system message (prepended)
+max_output_tokens              → options.num_predict
+temperature                    → options.temperature
+top_p                          → options.top_p
+stream                         → stream
+tools                          → tools (OpenAI-compatible, Ollama 0.3+)
+```
+
+### Message Format
+
+Ollama uses OpenAI-compatible message format:
+
+```rust
+// Open Responses → Ollama
+InputItem::Message { role: User, content: "Hello" }
+    → { "role": "user", "content": "Hello" }
+
+// System message
+instructions: "Be helpful"
+    → { "role": "system", "content": "Be helpful" }
+
+// Multi-modal (images)
+ContentPart::Image { data, media_type }
+    → { "role": "user", "images": [base64_data] }
+```
+
+### Response Transformation
+
+```
+Ollama Chat Response → Response
+──────────────────────────────
+
+Ollama                           Open Responses
+──────                           ──────────────
+(generated ID)                → id (prefixed with "resp_oll_")
+model                         → model
+message.content               → output[0] as Item::Message
+message.tool_calls            → output[n] as Item::FunctionCall (Ollama 0.3+)
+done_reason                   → status
+  - "stop"                    → ResponseStatus::Completed
+  - "length"                  → ResponseStatus::Incomplete (MaxTokens)
+prompt_eval_count             → usage.input_tokens
+eval_count                    → usage.output_tokens
+```
+
+### Streaming Events
+
+```
+Ollama SSE (NDJSON)              Open Responses SSE
+───────────────────              ──────────────────
+(first chunk)                 → response.created, response.in_progress
+message.content               → response.output_text.delta
+done: true                    → response.completed
+```
+
+### Model Discovery
+
+Ollama provides model discovery via `/api/tags`:
+
+```json
+GET /api/tags
+{
+  "models": [
+    { "name": "llama3.2:latest", "size": 2048000000 },
+    { "name": "mistral:latest", "size": 4100000000 }
+  ]
+}
+```
+
+---
+
+## AWS Bedrock Mapping
+
+### Request Transformation
+
+```
+CreateResponseRequest → Bedrock InvokeModel Request
+───────────────────────────────────────────────────
+
+Open Responses                    Bedrock
+──────────────                    ───────
+model                          → modelId (in URL path)
+input                          → body (model-specific format)
+instructions                   → system (for Claude) or prepended message
+max_output_tokens              → max_tokens / maxTokenCount
+temperature                    → temperature
+top_p                          → top_p / topP
+stream                         → (use InvokeModelWithResponseStream)
+```
+
+### Authentication
+
+AWS Bedrock uses AWS SigV4 authentication:
+
+```rust
+// Required credentials
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_REGION (default: us-east-1)
+
+// Optional
+AWS_SESSION_TOKEN (for temporary credentials)
+```
+
+### Model-Specific Body Formats
+
+#### Anthropic Claude on Bedrock
+
+```json
+{
+  "anthropic_version": "bedrock-2023-05-31",
+  "max_tokens": 1024,
+  "system": "You are helpful",
+  "messages": [
+    { "role": "user", "content": "Hello" }
+  ]
+}
+```
+
+#### Meta Llama on Bedrock
+
+```json
+{
+  "prompt": "<s>[INST] <<SYS>>\nYou are helpful\n<</SYS>>\n\nHello [/INST]",
+  "max_gen_len": 1024,
+  "temperature": 0.7
+}
+```
+
+#### Amazon Titan on Bedrock
+
+```json
+{
+  "inputText": "User: Hello\n\nBot:",
+  "textGenerationConfig": {
+    "maxTokenCount": 1024,
+    "temperature": 0.7
+  }
+}
+```
+
+### Response Transformation
+
+```
+Bedrock InvokeModel Response → Response
+──────────────────────────────────────
+
+Bedrock (Claude)                 Open Responses
+────────────────                 ──────────────
+id                            → id (prefixed with "resp_bed_")
+content[0].text               → output[0] as Item::Message
+content[].tool_use            → output[n] as Item::FunctionCall
+stop_reason                   → status
+usage.input_tokens            → usage.input_tokens
+usage.output_tokens           → usage.output_tokens
+```
+
+### Streaming Events
+
+Bedrock uses binary event stream format:
+
+```
+Bedrock Event Stream             Open Responses SSE
+────────────────────             ──────────────────
+:message-type event           → response.created
+content_block_delta           → response.output_text.delta
+message_stop                  → response.completed
+```
+
+---
+
+## HuggingFace Mapping
+
+### Request Transformation
+
+```
+CreateResponseRequest → HuggingFace Inference Request
+─────────────────────────────────────────────────────
+
+Open Responses                    HuggingFace
+──────────────                    ──────────
+model                          → model (in URL path)
+input                          → inputs (as formatted prompt)
+instructions                   → Prepended to prompt
+max_output_tokens              → parameters.max_new_tokens
+temperature                    → parameters.temperature
+top_p                          → parameters.top_p
+stream                         → stream (for TGI endpoints)
+```
+
+### Inference API vs Inference Endpoints
+
+**Inference API (Serverless):**
+```
+POST https://api-inference.huggingface.co/models/{model}
+Authorization: Bearer {HF_TOKEN}
+```
+
+**Inference Endpoints (Dedicated):**
+```
+POST https://{endpoint_url}
+Authorization: Bearer {HF_TOKEN}
+```
+
+### Text Generation Inference (TGI) Format
+
+For TGI endpoints, use chat completion format:
+
+```json
+{
+  "model": "meta-llama/Meta-Llama-3-70B-Instruct",
+  "messages": [
+    { "role": "system", "content": "You are helpful" },
+    { "role": "user", "content": "Hello" }
+  ],
+  "max_tokens": 1024,
+  "stream": true
+}
+```
+
+### Response Transformation
+
+```
+HuggingFace Response → Response
+──────────────────────────────
+
+HuggingFace                      Open Responses
+───────────                      ──────────────
+(generated ID)                → id (prefixed with "resp_hf_")
+generated_text                → output[0] as Item::Message
+  (or choices[0].message)
+details.tokens                → usage approximation
+```
+
+### Streaming Events (TGI)
+
+```
+TGI SSE                          Open Responses SSE
+───────                          ──────────────────
+(initial)                     → response.created
+token.text                    → response.output_text.delta
+finish_reason                 → response.completed
+```
+
+---
+
 ## Error Mapping
 
-| Open Responses Error | OpenAI | Anthropic | Gemini |
-|---------------------|--------|-----------|--------|
-| `invalid_request` | 400 Bad Request | 400 invalid_request_error | 400 INVALID_ARGUMENT |
-| `authentication` | 401 Unauthorized | 401 authentication_error | 401 UNAUTHENTICATED |
-| `rate_limit` | 429 Too Many Requests | 429 rate_limit_error | 429 RESOURCE_EXHAUSTED |
-| `server_error` | 500 Internal Error | 500 api_error | 500 INTERNAL |
-| `provider_error` | 502/503 | 529 overloaded_error | 503 UNAVAILABLE |
+| Open Responses Error | OpenAI | Anthropic | Gemini | Mistral | Ollama | Bedrock |
+|---------------------|--------|-----------|--------|---------|--------|---------|
+| `invalid_request` | 400 | 400 invalid_request_error | 400 INVALID_ARGUMENT | 400 | 400 | ValidationException |
+| `authentication` | 401 | 401 authentication_error | 401 UNAUTHENTICATED | 401 | N/A | AccessDeniedException |
+| `rate_limit` | 429 | 429 rate_limit_error | 429 RESOURCE_EXHAUSTED | 429 | N/A | ThrottlingException |
+| `server_error` | 500 | 500 api_error | 500 INTERNAL | 500 | 500 | InternalServerException |
+| `provider_error` | 502/503 | 529 overloaded | 503 UNAVAILABLE | 503 | Connection refused | ServiceUnavailable |
 
 ---
 
 ## Feature Support Matrix
 
-| Feature | OpenAI | Anthropic | Gemini |
-|---------|--------|-----------|--------|
-| Text Messages | ✅ | ✅ | ✅ |
-| System Prompt | ✅ | ✅ | ✅ |
-| Image Input | ✅ (Vision models) | ✅ | ✅ |
-| Audio Input | ✅ (Whisper) | ❌ | ✅ |
-| Function Calling | ✅ | ✅ | ✅ |
-| Parallel Tool Calls | ✅ | ✅ | ✅ |
-| Streaming | ✅ | ✅ | ✅ |
-| Reasoning/Thinking | ❌ | ✅ (Extended thinking) | ❌ |
-| JSON Mode | ✅ | ✅ | ✅ |
-| Structured Output | ✅ | ✅ | ✅ |
+| Feature | OpenAI | Anthropic | Gemini | Mistral | Ollama | Bedrock | HuggingFace |
+|---------|--------|-----------|--------|---------|--------|---------|-------------|
+| Text Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| System Prompt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Image Input | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (Claude) | ✅ (some) |
+| Audio Input | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Function Calling | ✅ | ✅ | ✅ | ✅ | ✅ (0.3+) | ✅ (Claude) | ❌ |
+| Parallel Tool Calls | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ (Claude) | ❌ |
+| Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ (TGI) |
+| Reasoning/Thinking | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| JSON Mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Structured Output | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Local/Self-Hosted | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Model Discovery | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
 
 ---
 
@@ -317,6 +650,10 @@ All provider IDs are prefixed to ensure uniqueness across providers:
 - OpenAI: `resp_oai_<original_id>`
 - Anthropic: `resp_ant_<original_id>`
 - Gemini: `resp_gem_<generated_uuid>`
+- Mistral: `resp_mis_<original_id>`
+- Ollama: `resp_oll_<generated_uuid>`
+- Bedrock: `resp_bed_<generated_uuid>`
+- HuggingFace: `resp_hf_<generated_uuid>`
 
 ### 2. System Message Handling
 - **OpenAI**: System message as first message in array

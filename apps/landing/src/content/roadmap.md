@@ -80,9 +80,12 @@ Our vision for Aura is to be the most powerful, easiest-to-use LLM gateway for p
 ### Platform Support
 
 **Additional providers** (Ongoing)
+- **AWS Bedrock** - Claude, Llama, Titan models via AWS
+- **Mistral AI** - Mistral Large, Medium, Codestral
+- **Ollama** - Local models (Llama, Mistral, CodeLlama, Qwen)
+- **HuggingFace** - Inference API and Endpoints
+- **Cohere** - Command R/R+ models
 - Azure OpenAI
-- Cohere
-- Mistral AI
 - Together AI
 - Replicate
 
@@ -142,6 +145,6 @@ We aim for:
 - **Minor releases** (new features): Monthly
 - **Major releases** (breaking changes): Quarterly
 
-Current version: **v0.1.7**
+Current version: **v0.2.0**
 
-Next release: **v0.2.0** (estimated February 2026)
+Next release: **v0.3.0** (estimated February 2026)

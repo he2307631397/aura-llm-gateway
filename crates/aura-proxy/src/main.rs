@@ -6,7 +6,7 @@
 mod routes;
 
 use anyhow::Context;
-use aura_core::{AnthropicProvider, CostCalculator, OpenAIProvider, Provider};
+use aura_core::{AnthropicProvider, CostCalculator, GeminiProvider, OpenAIProvider, Provider};
 use aura_db::{ApiKeyUsageRepo, DbPool, NewApiKeyUsage, NewRequestLog, PoolConfig, RequestLogRepo};
 use axum::{middleware, Router};
 use std::collections::HashMap;
@@ -68,7 +68,20 @@ impl AppState {
             warn!("Anthropic API key not configured - Anthropic provider disabled");
         }
 
-        // TODO: Add Google provider when implemented
+        // Register Google Gemini provider if API key is configured
+        if let Some(api_key) = &config.providers.google_api_key {
+            info!("Registering Google Gemini provider");
+            let gemini = Arc::new(GeminiProvider::new(api_key)) as Arc<dyn Provider>;
+
+            // Map all supported models to this provider
+            for model in gemini.models() {
+                model_map.insert(model.to_string(), "google".to_string());
+            }
+
+            providers.insert("google".to_string(), gemini);
+        } else {
+            warn!("Google API key not configured - Gemini provider disabled");
+        }
 
         if db_pool.is_some() {
             info!("Database connection pool initialized - request logging enabled");

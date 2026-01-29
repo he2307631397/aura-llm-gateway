@@ -65,6 +65,17 @@ hex = "0.4"
 # Configuration
 dotenvy = "0.15"
 
+# Redis
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
+url = "2.5"
+
+# Metrics
+metrics = "0.24"
+metrics-exporter-prometheus = "0.16"
+
+# Regex (for tests)
+regex = "1.10"
+
 # OpenAPI Documentation
 utoipa = { version = "5.3", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-axum = "0.2"

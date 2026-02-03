@@ -25,6 +25,9 @@ semver_check = false
 pr_labels = ["release"]
 pr_draft = false
 
+# Version bumping: feat commits always bump minor (even in 0.x)
+features_always_increment_minor = true
+
 # Individual package configuration
 # publish = false prevents publishing to crates.io
 # All packages contribute to workspace version bumps

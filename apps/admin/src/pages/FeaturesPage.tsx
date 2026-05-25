@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Header } from '@/components/layout'
 import { Button, Card, CardContent, CardHeader, CardTitle, Badge } from '@/components/ui'
-import { cn, formatCurrency, formatNumber } from '@/lib/utils'
+import { cn, formatCurrency, formatNumber, formatStrategy } from '@/lib/utils'
 import {
   Sparkles2Line,
   ShieldLine,
@@ -64,6 +64,10 @@ export function FeaturesPage() {
   }
 
   useEffect(() => {
+    // Show the loading skeleton on every period switch, otherwise
+    // the previous range's stats stay visible while the new request
+    // is in flight and the user sees nothing change.
+    setLoading(true)
     fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange])
@@ -318,9 +322,7 @@ function FeatureSection({
                   key={b.strategy}
                   className="flex items-center justify-between p-2 rounded border border-border/40 text-sm"
                 >
-                  <Badge variant="secondary" className="capitalize">
-                    {b.strategy.replace(/_/g, ' ')}
-                  </Badge>
+                  <Badge variant="secondary">{formatStrategy(b.strategy)}</Badge>
                   <span className="font-mono tabular-nums">
                     {formatNumber(b.request_count)} requests
                   </span>
